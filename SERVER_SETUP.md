@@ -191,10 +191,10 @@ sudo groupadd dev
 sudo useradd -m -s /bin/bash -G sysadmin mgkhant
 sudo useradd -m -s /bin/bash -G sysadmin agmyintmyatag
 sudo useradd -m -s /bin/bash -G sysadmin gonyaungwin
-sudo useradd -m -s /bin/bash -G sysadmin aungkhantkyaw
+sudo useradd -m -s /bin/bash -G sysadmin agkhantkyaw
 sudo useradd -m -s /bin/bash -G sysadmin santhiritun
 
-# Deployer user (dev group, for deployment)
+# Deployer users (dev group) — agmyintmyat is the primary deployer
 sudo useradd -m -s /bin/bash -G dev kghtutthaw
 sudo useradd -m -s /bin/bash -G dev hanlinhtun
 sudo useradd -m -s /bin/bash -G dev shoonlaeaung
@@ -203,11 +203,15 @@ sudo useradd -m -s /bin/bash -G dev agmyintmyat
 
 ### Set Passwords
 
+If you used [server-setup.sh](script/server-setup.sh), it prompts for each new user's password interactively (input hidden, Enter skips and leaves the account locked). For classroom demos on the isolated lab VM, `12345678` is used as the shared convention — never reuse it outside the lab.
+
+For manual setup, run `passwd` for every account:
+
 ```bash
 sudo passwd mgkhant
 sudo passwd agmyintmyatag
 sudo passwd gonyaungwin
-sudo passwd aungkhantkyaw
+sudo passwd agkhantkyaw
 sudo passwd santhiritun
 sudo passwd kghtutthaw
 sudo passwd hanlinhtun
@@ -218,14 +222,18 @@ sudo passwd agmyintmyat
 ### Grant sudo to sysadmin Group
 
 ```bash
-echo "%sysadmin ALL=(ALL:ALL) ALL" | sudo tee /etc/sudoers.d/sysadmin
+sudo usermod -aG sudo mgkhant
+sudo usermod -aG sudo agmyintmyatag
+sudo usermod -aG sudo gonyaungwin
+sudo usermod -aG sudo agkhantkyaw
+sudo usermod -aG sudo santhiritun
 ```
 
 ### Verify Groups
 
 ```bash
-groups mgkhant      # should show: mgkhant sysadmin
-groups kghtutthaw   # should show: kghtutthaw dev
+groups mgkhant        # should show: mgkhant sysadmin
+groups agmyintmyat    # should show: agmyintmyat dev (primary deployer)
 ```
 
 ### Lock Unused Default Accounts
@@ -245,31 +253,31 @@ sudo mkdir -p /var/www/app
 ### Set Ownership
 
 ```bash
-sudo chown -R kghtutthaw:dev /var/www/app
+sudo chown -R agmyintmyat:dev /var/www/app
 ```
 
 ### Set Permissions
 
 ```bash
 # Directories: 775 (owner+group read/write/execute)
-sudo find /var/www/app -type d -exec chmod 775 {} \;
+sudo chmod 775 /var/www/app
 
 # Files: 664 (owner+group read/write, others read)
-sudo find /var/www/app -type f -exec chmod 664 {} \;
+sudo chmod -R 664 /var/www/app/*
 ```
 
 ### Verify Permissions
 
 ```bash
 ls -la /var/www/app/
-# Expected: drwxrwxr-x kghtutthaw dev
+# Expected: drwxrwxr-x agmyintmyat dev
 ```
 
 ### Protect Sensitive Files
 
 ```bash
 # If .env exists, restrict to owner only
-sudo chown kghtutthaw:dev /var/www/app/.env
+sudo chown agmyintmyat:dev /var/www/app/.env
 sudo chmod 600 /var/www/app/.env
 ```
 
@@ -287,6 +295,20 @@ sudo apt install apache2 -y
 sudo a2enmod proxy
 sudo a2enmod proxy_http
 sudo a2enmod rewrite
+sudo a2enmod headers
+```
+
+### Generate a Self-Signed Certificate
+
+> Access is via the VM IP address only, and Let's Encrypt cannot issue certificates for bare IPs — so a self-signed certificate is used by default. Browsers will show a one-time trust warning; this is expected.
+
+Generate the certificate **before** creating the VirtualHost so Apache passes `configtest` on the first try:
+
+```bash
+sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+    -keyout /etc/ssl/private/selfsigned.key \
+    -out /etc/ssl/certs/selfsigned.crt \
+    -subj "/CN=<vm-ip>"
 ```
 
 ### Create Virtual Host Configuration
@@ -309,19 +331,15 @@ Add the following:
 <VirtualHost *:443>
     ServerName <vm-ip>
 
-    # SSL Configuration (Certbot will populate these)
+    # SSL Configuration (self-signed certificate generated above)
     SSLEngine on
-    SSLCertificateFile /etc/letsencrypt/live/<vm-ip>/fullchain.pem
-    SSLCertificateKeyFile /etc/letsencrypt/live/<vm-ip>/privkey.pem
+    SSLCertificateFile /etc/ssl/certs/selfsigned.crt
+    SSLCertificateKeyFile /etc/ssl/private/selfsigned.key
 
-    # Security headers
+    # Security headers (requires mod_headers)
     Header always set Strict-Transport-Security "max-age=63072000; includeSubDomains"
     Header always set X-Content-Type-Options "nosniff"
     Header always set X-Frame-Options "SAMEORIGIN"
-
-    # Hide server version
-    ServerTokens Prod
-    ServerSignature Off
 
     # Reverse proxy to Next.js
     ProxyPreserveHost On
@@ -330,7 +348,7 @@ Add the following:
 
     # Static assets served directly by Apache (optional performance boost)
     # ProxyPass /_next/static/ !
-    # Alias /_next/static/ /var/www/app/.next/static/
+    # Alias /_next/static/ /var/www/app/out/_next/static/
 
     # Logs
     ErrorLog ${APACHE_LOG_DIR}/app-error.log
@@ -338,13 +356,33 @@ Add the following:
 </VirtualHost>
 ```
 
-> **Note:** Replace `<vm-ip>` with your actual VM IP address. SSL paths will be updated after Certbot runs.
+> **Note:** Replace `<vm-ip>` with your actual VM IP address. The certificate paths point to the self-signed pair generated above.
 
 ### Enable the Site
 
 ```bash
 sudo a2ensite app.conf
 sudo a2dissite 000-default.conf
+```
+
+### Hide Server Version (Global Config)
+
+> `ServerTokens` and `ServerSignature` are server-context directives — placing them inside a `<VirtualHost>` block breaks `configtest`. They belong in `/etc/apache2/conf-available/security.conf`.
+
+Verify these values in `/etc/apache2/conf-available/security.conf`:
+
+```
+ServerTokens Prod
+ServerSignature Off
+```
+
+### Suppress the FQDN Warning
+
+Prevents `AH00558: Could not reliably determine the server's fully qualified domain name` from appearing on every Apache command:
+
+```bash
+echo "ServerName <vm-ip>" | sudo tee /etc/apache2/conf-available/servername.conf
+sudo a2enconf servername
 ```
 
 ### Test and Restart
@@ -384,7 +422,7 @@ sudo npm install -g pm2
 
 1. Switch to deployer user:
     ```bash
-    su - kghtutthaw
+    su - agmyintmyat
     ```
 
 2. Clone the project:
@@ -394,17 +432,18 @@ sudo npm install -g pm2
     cd app
     ```
 
-3. Install dependencies and build (from `app/backend` directory):
+3. Install dependencies and build (from the repo root `/var/www/app`):
     ```bash
-    cd backend
     npm install
     npm run build
     ```
+    > This app is a static export (`output: "export"` in `next.config.js`) — the build produces plain HTML/CSS/JS in `./out`.
 
-4. Start the app with PM2 (from `app/backend` directory):
+4. Start the app with PM2 (from the repo root `/var/www/app`):
     ```bash
     pm2 start npm --name "nextjs" -- start
     ```
+    > The app's `start` script runs `npx serve out`, which serves the static build on port 3000. Do NOT use `next start` — it fails with a static export (`output: "export"`) configuration.
 
 5. Save PM2 process list and set up startup:
     ```bash
@@ -422,11 +461,11 @@ sudo npm install -g pm2
 
 ```bash
 pm2 status          # should show "nextjs" as online
-pm2 logs nextjs     # check application logs
-curl http://127.0.0.1:3000    # should return the Next.js page
+pm2 logs nextjs     # check application logs (crash reasons appear here)
+curl -I http://127.0.0.1:3000    # should return HTTP 200 from the Next.js page
 ```
 
-> **Note:** The app runs from `/var/www/app/backend` — all `npm` commands (install, build, start) are executed in this directory.
+> **Note:** The app runs from the repo root `/var/www/app` — all `npm` commands (install, build, start) are executed in this directory. Verify `curl -I http://127.0.0.1:3000` returns 200 **before** troubleshooting Apache; a 503 from Apache means this backend is down.
 
 ### PM2 Useful Commands
 
@@ -440,6 +479,8 @@ pm2 monit                   # real-time monitoring dashboard
 
 ## 9. SSL/TLS with Certbot
 
+> **Optional — requires a domain.** Skip this section for IP-only access: the VM already uses a self-signed certificate (Section 7), and Let's Encrypt cannot issue certificates for bare IPs.
+
 ### Install Certbot
 
 ```bash
@@ -449,25 +490,10 @@ sudo apt install certbot python3-certbot-apache -y
 ### Obtain Certificate
 
 ```bash
-sudo certbot --apache -d <vm-ip>
+sudo certbot --apache -d <your-domain>
 ```
 
-> **Note:** For IP-based certificates, Let's Encrypt may not issue certificates for bare IPs. If so, use a self-signed certificate instead (see below).
-
-### Self-Signed Certificate (Fallback for IP Access)
-
-```bash
-sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-    -keyout /etc/ssl/private/selfsigned.key \
-    -out /etc/ssl/certs/selfsigned.crt \
-    -subj "/CN=<vm-ip>"
-```
-
-Then update the VirtualHost to use these paths:
-```apache
-SSLCertificateFile /etc/ssl/certs/selfsigned.crt
-SSLCertificateKeyFile /etc/ssl/private/selfsigned.key
-```
+Certbot obtains the certificate and rewrites `app.conf` automatically. Then update `ServerName` in `/etc/apache2/sites-available/app.conf` from `<vm-ip>` to `<your-domain>` and swap the self-signed certificate lines for the Let's Encrypt paths Certbot reports.
 
 ### Auto-Renewal (for Let's Encrypt only)
 
@@ -567,8 +593,8 @@ sudo systemctl status fail2ban
 # Website responds via HTTP (should redirect to HTTPS)
 curl -I http://<vm-ip>
 
-# Website responds via HTTPS
-curl -I https://<vm-ip>
+# Website responds via HTTPS (-k accepts the self-signed certificate)
+curl -kI https://<vm-ip>
 
 # Tailscale tunnel works (admin access)
 tailscale status
@@ -587,7 +613,7 @@ sudo ufw status
 sudo fail2ban-client status
 
 # Server version is hidden
-curl -sI https://<vm-ip> | grep -i server
+curl -skI https://<vm-ip> | grep -i server
 # Should return: Server: Apache
 ```
 
