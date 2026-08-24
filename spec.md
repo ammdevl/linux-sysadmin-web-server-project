@@ -67,7 +67,7 @@ A training center needs a self-paced course website where students can access le
   - Production access: `https://<vm-ip>` (direct, no Tailscale)
   - Admin/development access: via Tailscale tunnel (SSH, deployment)
   - Tailscale is used only for sysadmin and dev configuration — not for end-user production traffic
-  - Next.js runs on `localhost:3000` managed by `systemd` as dedicated user
+  - Next.js runs on `localhost:3000` managed by PM2 as dedicated user
   - Apache proxies all requests to the Node.js process
   - All file operations logged and permission-restricted
 
@@ -86,23 +86,23 @@ A training center needs a self-paced course website where students can access le
 
 ## Definition of Done
 
-- [ ] Tailscale is installed and host can reach VM for admin access (`tailscale status`).
-- [ ] VM is accessible via SSH over Tailscale with key-only authentication (no password login).
-- [ ] `sysadmin` and `dev` groups created with appropriate members.
-- [ ] Dedicated `developers` (in `dev`) and `admins` (in `sysadmin`) users created.
-- [ ] Root login is disabled over SSH.
-- [ ] Apache2 installs and starts without errors (`systemctl status apache2` shows active).
-- [ ] Next.js app builds and runs on `localhost:3000` as a dedicated non-root user.
-- [ ] `curl http://<tailscale-ip>` returns the Next.js page via Apache reverse proxy.
-- [ ] HTTPS works — `curl -I https://<tailscale-ip>` returns `200` with valid certificate.
-- [ ] HTTP-to-HTTPS redirect is in place.
-- [ ] File permissions are correct — `ls -la /var/www/app/` shows proper ownership.
-- [ ] Web server process cannot write to its own document root.
-- [ ] Firewall blocks all ports except 22, 80, and 443.
-- [ ] fail2ban is active and monitoring SSH and Apache (`fail2ban-client status`).
-- [ ] Server version info is hidden in HTTP response headers.
-- [ ] Apache starts on boot (`systemctl enable apache2`).
-- [ ] Next.js starts on boot via PM2 (`pm2 startup` + `pm2 save`).
+- [x] Tailscale is installed and host can reach VM for admin access (`tailscale status`).
+- [x] VM is accessible via SSH over Tailscale with key-only authentication (no password login).
+- [x] `sysadmin` and `dev` groups created with appropriate members.
+- [x] Dedicated `developers` (in `dev`) and `admins` (in `sysadmin`) users created.
+- [x] Root login is disabled over SSH.
+- [x] Apache2 installs and starts without errors (`systemctl status apache2` shows active).
+- [x] Next.js app builds and runs on `localhost:3000` as a dedicated non-root user.
+- [x] `curl http://<tailscale-ip>` returns the Next.js page via Apache reverse proxy.
+- [x] HTTPS works — `curl -I https://<tailscale-ip>` returns `200` with valid certificate.
+- [x] HTTP-to-HTTPS redirect is in place.
+- [x] File permissions are correct — `ls -la /var/www/app/` shows proper ownership.
+- [x] Web server process cannot write to its own document root.
+- [x] Firewall blocks all ports except 22, 80, and 443.
+- [x] fail2ban is active and monitoring SSH and Apache (`fail2ban-client status`).
+- [x] Server version info is hidden in HTTP response headers.
+- [x] Apache starts on boot (`systemctl enable apache2`).
+- [x] Next.js starts on boot via PM2 (`pm2 startup` + `pm2 save`).
 
 ## Key References & Documentation
 
