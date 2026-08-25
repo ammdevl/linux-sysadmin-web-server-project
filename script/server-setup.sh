@@ -264,8 +264,8 @@ setup_apache() {
     section_header "Step 7/11  Apache2 Installation & Configuration"
 
     sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq apache2 > /dev/null
-    sudo a2enmod proxy proxy_http rewrite headers > /dev/null
-    ok "Apache2 installed (proxy, proxy_http, rewrite, headers enabled)"
+    sudo a2enmod proxy proxy_http rewrite headers ssl > /dev/null
+    ok "Apache2 installed (proxy, proxy_http, rewrite, headers, ssl enabled)"
 
     local vm_ip="$VM_IP"
     [[ -z "$vm_ip" ]] && vm_ip=$(detect_vm_ip)
