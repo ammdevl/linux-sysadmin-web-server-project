@@ -219,7 +219,7 @@ sudo passwd shoonlaeaung
 sudo passwd agmyintmyat
 ```
 
-### Grant sudo to sysadmin Group
+### Grant sudo to sysadmin and dev Groups
 
 ```bash
 sudo usermod -aG sudo mgkhant
@@ -296,6 +296,7 @@ sudo a2enmod proxy
 sudo a2enmod proxy_http
 sudo a2enmod rewrite
 sudo a2enmod headers
+sudo a2enmod ssl
 ```
 
 ### Generate a Self-Signed Certificate
@@ -445,17 +446,19 @@ sudo npm install -g pm2
     ```
     > The app's `start` script runs `npx serve out`, which serves the static build on port 3000. Do NOT use `next start` — it fails with a static export (`output: "export"`) configuration.
 
-5. Save PM2 process list and set up startup:
+5. Save PM2 process list and get the startup command:
     ```bash
     pm2 save
     pm2 startup
     ```
-    > PM2 will output a command starting with `sudo env PATH=...`. **Copy and run that exact command** to finalize startup configuration.
+    > PM2 prints a `sudo env PATH=...` command. **Do not run it as the deployer** — `dev` users have no sudo by design. Just copy it, then move to the next step.
 
 6. Exit back to admin:
     ```bash
     exit
     ```
+
+    > Now paste the `sudo env PATH=...` command PM2 printed in previous state.
 
 ### Verify PM2
 
