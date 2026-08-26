@@ -1,81 +1,14 @@
-# ==========================================
-# Linux SysAdmin & Repo Common Defaults
-# ==========================================
-
-# Secrets & Credentials (NEVER commit these)
-*.pem
-*.key
-*.pub
-*.crt
-*.pfx
-id_rsa
-id_rsa*
-*.p12
-*.asc
-.env
-.env.*
-secrets/
-vault-password.txt
-*.vault
-
-# Backup & Temporary Files
-*.bak
-*.tmp
-*.temp
-*.swp
-*~
-.#*
-.DS_Store
-
-# Logs & Runtime Data
-*.log
-logs/
-*.pid
-*.sock
-
-# System Admin / Config Specific
-/tmp/
-/var/
-/etc/
-!etc/templates/    # Keep config templates if needed
-
-# ==========================================
-# Tool-Specific Ignore Rules
-# ==========================================
-
-# Ansible
-.ansible/
-*.retry
-roles_fetched/
-.ansible-lint
-
-# Terraform / OpenTofu
-.terraform/
-*.tfstate
-*.tfstate.backup
-*.tfvars
-*.tfvars.json
-override.tf
-override.tf.json
-*_override.tf
-*_override.tf.json
-
-# Docker & Container Tooling
-.docker/
-docker-compose.override.yml
-
-# Python / Virtual Environments (for Python-based admin scripts)
-__pycache__/
-*.py[cod]
-*$py.class
-.venv/
-venv/
-env/
-ENV/
-
-# Shell/Bash Debugging
-.bash_history
-.zsh_history
-
 # Virtualization & VM Tools
 /vmware
+
+# Latex
+docs/*.aux
+docs/*.fdb_latexmk
+docs/*.fls
+docs/*.lof
+docs/*.log
+docs/*.lot
+docs/*.out
+docs/*.pdf
+docs/*.synctex.gz
+docs/*.toc

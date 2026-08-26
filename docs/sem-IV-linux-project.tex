@@ -1,0 +1,965 @@
+\documentclass[12pt,a4paper]{report}
+\usepackage[utf8]{inputenc}
+\usepackage[margin=0.7in]{geometry}
+\usepackage{graphicx}
+\usepackage{tabularx}
+\usepackage{booktabs}
+\usepackage{float}
+\usepackage{xltabular}
+\usepackage{enumitem}
+\usepackage{times}
+\usepackage{titlesec}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{tocloft}
+\usepackage{indentfirst}
+\usepackage{caption}
+\usepackage{mdframed}
+
+
+\definecolor{termbg}{RGB}{30, 30, 30} 
+\definecolor{termfg}{RGB}{230, 230, 230}
+\definecolor{termgreen}{RGB}{80, 250, 123}
+\definecolor{termblue}{RGB}{139, 233, 253}
+\lstdefinestyle{terminal}{
+    backgroundcolor=\color{termbg},
+    basicstyle=\color{termfg}\ttfamily\small,
+    keywordstyle=\color{black},              
+    commentstyle=\color{gray}\itshape,
+    stringstyle=\color{red},
+    frame=single,        
+    frameround=tttt,      
+    rulecolor=\color{termbg!80!black},     
+    framesep=8pt,            
+    xleftmargin=8pt,                      
+    xrightmargin=8pt,                       
+    breaklines=true,                    
+    showstringspaces=false,                  
+    literate={\$}{{\textcolor{termgreen}{\$}}}1 
+}
+
+\lstset{style=terminal}
+
+\newmdenv[
+  topline=false,
+  bottomline=false,
+  rightline=false,
+  leftline=true,
+  linewidth=3pt,
+  linecolor=gray,
+  backgroundcolor=gray!10,
+  innerleftmargin=10pt,
+  innerrightmargin=10pt,
+  innertopmargin=8pt,
+  innerbottommargin=8pt
+]{markdownnote}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=black,
+    urlcolor=blue,
+}
+
+\lstset{
+    basicstyle=\ttfamily\small,
+    backgroundcolor=\color{gray!10},
+    frame=single,
+    breaklines=true,
+    showstringspaces=false,
+    columns=flexible,
+    keepspaces=true,
+}
+
+\titleformat{\chapter}[display]
+  {\normalfont\huge\bfseries\centering} 
+  {\chaptertitlename\ \thechapter}
+  {20pt}
+  {\Huge}
+\titlespacing*{\chapter}{0pt}{10pt}{40pt}
+
+\begin{document}
+
+\begin{titlepage}
+    \centering
+    \vspace*{1cm} 
+
+    {\Large \textbf{UNIVERSITY OF COMPUTER STUDIES, YANGON}} \\[0.4cm]
+    {\large Faculty of Computer Science and Technology} \\[0.2cm]
+    {\large 2025 - 2026 Academic Year} \\[1.5cm]
+   
+    \includegraphics[width=0.2\textwidth]{ucsy-logo.png} \\[1.5cm]
+
+    {\large \textbf{Linux Fundamentals (CST-311)}} \\[0.5cm]
+    {\LARGE \textbf{Web Server}} \\[0.5cm]
+    {\large Supervised by Daw Cho Cherry Aung} \\[2.5cm]
+
+    {\large Submitted By} \\[0.2cm]
+    {\large Group D (Section - B)} \\[0.3cm]
+    {\large
+    \begin{tabular}{l l}
+		Mg Maung Khant & YKPT - 22988\\
+		Mg Aung Myint Myat Aung & YKPT - 23029\\
+		Mg Gon Yaung Win & YKPT - 23013\\
+		Mg Aung Khant Kyaw & YKPT - 23023\\
+		Ma San Thiri Tun & YKPT - 23078\\
+		Mg Kaung Htut Thaw & YKPT - 23020\\
+		Mg Han Linn Htun & YKPT - 23005\\
+		Ma Shoon Lae Aung & YKPT - 23026\\
+		Mg Aung Myint Myat & YKPT - 23046\\
+    \end{tabular}
+    }
+
+    \vfill
+    \noindent
+    {\large September, 2026} \hfill 
+    \begin{tabular}{r}
+        {\large Semester IV} \\
+        {\large B.C.Sc/B.C.Tech}
+    \end{tabular}
+\end{titlepage}
+\newpage
+\tableofcontents
+\thispagestyle{empty}
+\clearpage
+\newpage
+
+\thispagestyle{empty}
+\newpage
+\begin{center}
+    {\huge \textbf{Abstract}}
+\end{center}
+\vspace{1em}
+
+\indent This project presents the design, deployment, and hardening of a secure web server on a VMware virtual machine running Ubuntu 24.04 LTS. An Apache2 reverse proxy fronts a self-placed course website (the ``lfs-101-notes'' Next.js application), with TLS termination via a self-signed certificate and automatic HTTP-to-HTTPS redirection. The server is managed through Linux system administration best practices: dedicated user and group accounts (sysadmin for administration, dev for deployment), least-privilege file ownership, key-only SSH authentication, a UFW firewall restricting access to SSH (22), HTTP (80), and HTTPS (443), and fail2ban intrusion prevention. Tailscale provides a secure WireGuard-based tunnel for remote administration. The deployment process is automated by a Bash script that handles system updates, user creation, Apache2 configuration, Node.js and PM2 installation, and application deployment. All configuration is version-controlled and documented, demonstrating the practical application of Linux system administration concepts in a real-world scenario.
+
+\vfill
+\clearpage
+\newpage
+
+\pagenumbering{arabic}
+\setcounter{page}{1}
+
+\chapter{Introduction}
+\section{Introduction}
+
+\indent Linux system administration is a core skill in modern IT infrastructure. This project applies lecture concepts from the Linux Fundamentals course (CST-311) to a real-world scenario: deploying and securing a web server on a VMware virtual machine.
+
+The project sets up an Apache2 web server hosting a Next.js application---a self-paced course website---on Ubuntu 24.04 LTS. Rather than simply running a default server, the team implements proper Linux administration practices including user and group management, file permission enforcement, service hardening, firewall configuration, and intrusion prevention.
+
+The resulting system follows the principle of least privilege: the web server process, the deployment user, and the administrative accounts each have only the permissions they need---no more. Production traffic reaches the site directly via the VM's IP address, while administrative access is routed through an encrypted Tailscale tunnel.
+
+\section{Project Objectives}
+
+The objectives of this project are:
+
+\begin{enumerate}[leftmargin=2em]
+    \item Deploy a Next.js application on a VMware virtual machine running Ubuntu 24.04 LTS, accessible via a web browser on the network.
+    \item Configure Apache2 as a reverse proxy with TLS termination, serving the application on HTTPS.
+    \item Apply Linux user and group management to enforce least-privilege access for administration and deployment.
+    \item Implement file permission controls so the web server cannot modify its own document root.
+    \item Harden SSH with key-only authentication and disable root login.
+    \item Configure a UFW firewall allowing only SSH (22), HTTP (80), and HTTPS (443).
+    \item Deploy fail2ban to automatically ban IPs after repeated failed login attempts.
+    \item Use Tailscale for secure remote administration via a WireGuard tunnel.
+    \item Automate the deployment process with a Bash script for reproducibility.
+    \item Document the full architecture, setup procedure, and known issues for future reference.
+\end{enumerate}
+
+\newpage
+
+\chapter{Background Theory}
+\section{Operating System}
+
+\indent An operating system (OS) is system software that manages computer hardware and software resources and provides common services for computer programs. It acts as an intermediary between users and the computer hardware, handling memory management, process scheduling, file system management, and device I/O.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.3\textwidth]{os.png}
+    \caption{Operaing System \texttt{//Source:WiKi}}
+\end{figure}
+
+The operating system can be divided into several layers: the kernel (which interacts directly with hardware), system libraries (which provide APIs for applications), and the user interface (which allows human interaction). In server environments, reliability, security, and performance are the primary concerns, making Unix-like operating systems - particularly Linux - the dominant choice for web infrastructure.
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.3\textwidth]{kernel.png}
+    \caption{Kernel \texttt{//Source:WiKi}}
+\end{figure}
+
+\section{Linux Distribution}
+
+\indent A Linux distribution (distro) is an operating system built on the Linux kernel, bundled with system libraries, package managers, and application software. Each distribution targets a specific use case and provides its own package management system, release cycle, and default configuration.
+
+Common distributions include:
+
+\begin{itemize}[leftmargin=2em]
+    \item \textbf{Ubuntu} --- Debian-based, widely used for servers and cloud infrastructure. Uses the \texttt{apt} package manager and releases LTS (Long Term Support) versions every two years.
+    \item \textbf{CentOS / Rocky Linux} --- RHEL-based, popular in enterprise environments. Uses \texttt{yum} / \texttt{dnf}.
+    \item \textbf{Debian} --- Known for stability; Ubuntu is derived from it.
+    \item \textbf{Fedora} --- Cutting-edge features, often previewing what enters RHEL.
+\end{itemize}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=1.0\textwidth]{distro.png}
+    \caption{Linux Distro \texttt{//Source:Linux Foundation}}
+\end{figure}
+
+This project uses \textbf{Ubuntu 24.04 LTS} (Noble Numbat) because of its five-year support window, extensive documentation, and large community. The LTS designation means security patches and bug fixes are guaranteed until April 2029, making it suitable for production server deployments.
+
+\section{GUI and CLI}
+
+\indent A \textbf{Graphical User Interface (GUI)} allows users to interact with the system through windows, icons, and visual elements. While intuitive for desktop use, GUIs consume additional resources and are impractical for remote server management.
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.5\textwidth]{gui.png}
+    \caption{GUI \texttt{//Source:WiKi}}
+\end{figure}
+A \textbf{Command-Line Interface (CLI)} allows users to interact with the system by typing commands in a terminal. For server administration, the CLI is preferred because:
+
+\begin{itemize}[leftmargin=2em]
+    \item It consumes minimal system resources.
+    \item Commands can be scripted and automated.
+    \item Remote access over SSH works efficiently even on low-bandwidth connections.
+    \item System configuration files are text-based and can be edited directly.
+\end{itemize}
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.5\textwidth]{cli.png}
+    \caption{CLI \texttt{//Source:WiKi}}
+\end{figure}
+
+All configuration in this project is performed via the CLI using tools such as \texttt{bash}, \texttt{nano}, \texttt{ssh}, and \texttt{systemctl}. The server runs without a desktop environment.
+
+\section{Different Types of Linux Server}
+
+\indent Linux servers are classified by the services they provide:
+
+\begin{itemize}[leftmargin=2em]
+    \item \textbf{Web Server} --- Serves HTTP/HTTPS content to clients. Common software: Apache2, Nginx.
+    \item \textbf{Database Server} --- Stores and retrieves structured data. Common software: MySQL, PostgreSQL.
+    \item \textbf{File Server} --- Provides shared file storage over a network. Common software: Samba, NFS.
+    \item \textbf{Mail Server} --- Handles email sending and receiving. Common software: Postfix, Dovecot.
+    \item \textbf{DNS Server} --- Resolves domain names to IP addresses. Common software: BIND9.
+    \item \textbf{DHCP Server} --- Automatically assigns IP addresses to network devices. Common software: ISC DHCP.
+    \item \textbf{Proxy Server} --- Intermediary for client requests, providing caching and access control. Common software: Squid.
+    \item \textbf{VPN Server} --- Provides encrypted remote access. Common software: WireGuard, OpenVPN.
+\end{itemize}
+
+This project implements a \textbf{web server} using Apache2 as the primary service, with Node.js and PM2 serving a Next.js application on the backend.
+
+\newpage
+
+\chapter{Implementation}
+
+\section{Installation Operating System}
+
+\indent Ubuntu 24.04 LTS (Noble Numbat) was installed on a VMware Workstation virtual machine with the following allocated resources:
+
+\begin{table}[H]
+\centering
+\begin{tabular}{l l}
+\toprule
+\textbf{Resource} & \textbf{Allocation} \\
+\midrule
+CPU    & 2+ cores \\
+RAM    & 4 GB minimum\\
+Disk   & 40 GB+\\
+Network & NAT \\
+\bottomrule
+\end{tabular}
+\caption{Virtual machine resource allocation}
+\end{table}
+
+The installation process involved downloading the Ubuntu 24.04 LTS ISO, creating a new virtual machine in VMware Workstation, mounting the ISO, and completing the guided installation. A regular user account was created during installation for initial access.
+
+\section{Ubuntu Operation System}
+
+\indent Ubuntu 24.04 LTS was chosen for the following reasons:
+
+\begin{itemize}[leftmargin=2em]
+    \item \textbf{Long-term support:} Five years of security updates (until April 2029).
+    \item \textbf{Community and documentation:} Extensive official guides and community forums.
+    \item \textbf{Package availability:} The \texttt{apt} package manager provides all required software (Apache2, Node.js, UFW, fail2ban).
+    \item \textbf{Cloud-init integration:} Works seamlessly with VMware's cloud-init for network configuration.
+\end{itemize}
+
+The server runs a minimal installation without a desktop environment, maximizing available resources for the web server and application.
+\newpage
+
+\section{System Requirements}
+
+\indent The following packages and tools were installed on the server:
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabularx}{\textwidth}{l X}
+\toprule
+\textbf{Component} & \textbf{Purpose} \\
+\midrule
+Apache2      & Web server and reverse proxy \\
+Node.js (LTS) & Runtime for the Next.js application \\
+npm          & Package manager for Node.js dependencies \\
+PM2          & Process manager for Node.js (auto-restart, boot persistence) \\
+certbot      & SSL/TLS certificate management (optional for domains) \\
+UFW          & Firewall (Uncomplicated Firewall) \\
+fail2ban     & Intrusion prevention (auto-bans repeated failed attempts) \\
+OpenSSH      & Secure remote access (key-only authentication) \\
+Tailscale    & WireGuard-based VPN for administrative access \\
+\bottomrule
+\end{tabularx}
+\caption{Server software components}
+\end{table}
+
+\section{Ubuntu with VMware}
+\begin{enumerate}
+ \item Open VMware Workstation or Fusion on your machine.
+ \item Click on “Create a New Virtual Machine”.
+ \item Continue to create A Virtual Ubuntu Operating.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=\textwidth]{vmware.png}
+    \caption{VMware Workstation Pro 26H2}
+\end{figure}
+ \item Now, update and upgrade the newly installed Ubuntu.
+  \begin{lstlisting}[language=bash]
+   sudo apt update
+   sudo apt upgrade\end{lstlisting}
+\end{enumerate}
+
+\section{Server Configuration}
+
+\subsection{Assigning Static IP Address}
+\indent The VM is configured with a static IP address via Netplan (\texttt{/etc/netplan/50-cloud-init.yaml}) so that services remain reachable after reboots. The VMware NAT network provides connectivity between the host machine and the VM.
+
+\begin{enumerate}
+\item Backup \texttt{/etc/netplan/50-cloud-init.yaml} and edit.
+\begin{lstlisting}[language=bash]
+sudo cp /etc/netplan/50-cloud-init.yaml /etc/netplan/50-cloud-init.yaml.bak
+sudo nano /etc/netplan/50-cloud-init.yaml
+\end{lstlisting}
+
+\item Now, insert the following configuration.
+\begin{lstlisting}[language=bash]
+network:
+  version: 2
+  ethernets:
+    ens33:
+      dhcp4: false
+      addresses:
+        - 192.168.10.5/24
+      routes:
+        - to: default
+          via: 192.168.10.2
+      nameservers:
+        addresses: [8.8.8.8, 8.8.4.4]
+\end{lstlisting}
+
+\begin{markdownnote}
+\textbf{Note:} Adjust \texttt{ens33}, \textbf{192.168.10.5}, and \textbf{192.168.10.2} to match your VMware network setup. Check your interface name with \texttt{ip a}.
+\end{markdownnote}
+
+\item Test and apply:
+\begin{lstlisting}[language=bash]
+sudo netplan try
+sudo netplan apply
+ip a
+\end{lstlisting}
+\end{enumerate}
+
+The server configuration follows a layered approach, addressing networking, security, web serving, and application deployment.
+
+\subsection{Setting up SSH for remote administration}
+
+\begin{enumerate}
+\item Install OpenSSH Server (on VM)
+\begin{lstlisting}[language=bash]
+sudo apt update && sudo apt upgrade -y
+sudo apt install openssh-server -y
+\end{lstlisting}
+
+\item Verify SSH is Running
+\begin{lstlisting}[language=bash]
+sudo systemctl status ssh
+\end{lstlisting}
+\newpage
+
+\item Connect from Host Machine
+Linux/macOS:
+\begin{lstlisting}[language=bash]
+ssh <username>@192.168.10.5
+\end{lstlisting}
+
+Windows (PowerShell):
+\begin{lstlisting}[language=bash]
+Windows PowerShell
+Copyright (C) Microsoft Coporation. All rights reserved.
+
+PS C:\Users\User> ssh <username>@192.168.10.5
+\end{lstlisting}
+
+\item Set Up Key-Based Authentication
+\begin{itemize}
+\item On your host machine, generate an SSH key pair:
+\begin{lstlisting}[language=bash]
+ssh-keygen -t ed25519 -C "your-email@example.com"
+\end{lstlisting}
+\item Copy the public key to the VM:
+\begin{lstlisting}[language=bash]
+ssh-copy-id <username>@192.168.10.5
+\end{lstlisting}
+\item Test key-based login (should NOT ask for password):
+\begin{lstlisting}[language=bash]
+ssh <username>@192.168.10.5
+\end{lstlisting}
+\end{itemize}
+
+\item Disable Password Authentication and Root Login (on VM)
+\begin{itemize}
+\item Open SSH config:
+\begin{lstlisting}[language=bash]
+sudo nano /etc/ssh/sshd_config
+\end{lstlisting}
+\item Find and change these lines:
+\begin{lstlisting}[language=bash]
+PasswordAuthentication no
+PermitRootLogin no
+\end{lstlisting}
+\item Restart SSH:
+\begin{lstlisting}[language=bash]
+sudo systemctl restart ssh
+\end{lstlisting}
+\end{itemize}
+\begin{markdownnote}
+\textbf{Security:} SSH was hardened to allow key-based authentication only. Password authentication and root login were disabled.
+\end{markdownnote}
+\end{enumerate}
+
+\subsection{Tailscale Setup (Admin Access)}
+Tailscale provides a secure tunnel between your host machine and the VM for administration purposes only. Production traffic does not go through Tailscale.
+
+\begin{enumerate}
+\item Install Tailscale on VM
+\begin{lstlisting}[language=bash]
+curl -fsSL https://tailscale.com/install.sh | sh
+sudo tailscale up
+\end{lstlisting}
+
+\begin{markdownnote}
+Follow the authentication URL to link the VM to your Tailscale account.
+\end{markdownnote}
+
+\item Install Tailscale on Host Machine
+Download and install from \href{https://tailscale.com/download}{tailscale.com/download}. Sign in with the same account.
+\item Verify Tunnel
+\begin{itemize}
+\item On host, check Tailscale status:
+\begin{lstlisting}[language=bash]
+tailscale status
+\end{lstlisting}
+\item Ping the VM via Tailscale:
+\begin{lstlisting}[language=bash]
+ping <tailscale-ip>
+\end{lstlisting}
+\item SSH via Tailscale:
+\begin{lstlisting}[language=bash]
+ssh <username>@<tailscale-ip>
+\end{lstlisting}
+\end{itemize}
+\begin{markdownnote}
+\textbf{Note:} Tailscale is used only for sysadmin and dev configuration. The website is accessed via the VM's static IP directly.
+\end{markdownnote}
+\end{enumerate}
+
+\subsection{User and Group Management}
+
+Two groups were created with distinct privilege levels:
+
+\begin{table}[H]
+\centering
+\begin{tabularx}{\textwidth}{l l X}
+\toprule
+\textbf{Group} & \textbf{Privilege} & \textbf{Members} \\
+\midrule
+sysadmin & Full sudo access & mgkhant, agmyintmyatag, gonyaungwin, agkhantkyaw, santhiritun \\
+dev      & Deployment only (no sudo) & kghtutthaw, hanlinhtun, shoonlaeaung, agmyintmyat \\
+\bottomrule
+\end{tabularx}
+\caption{User groups and their privileges}
+\end{table}
+
+\begin{markdownnote}
+The deployer account (\texttt{agmyintmyat}) owns the web application directory and runs PM2---it never requires sudo access.
+\end{markdownnote}
+
+\begin{enumerate}
+\item Create Groups
+\begin{lstlisting}[language=bash]
+sudo groupadd sysadmin
+sudo groupadd dev
+\end{lstlisting}
+
+\item Create Admin Users
+\begin{lstlisting}[language=bash]
+sudo useradd -m -s /bin/bash -G sysadmin mgkhant
+sudo useradd -m -s /bin/bash -G sysadmin agmyintmyatag
+sudo useradd -m -s /bin/bash -G sysadmin gonyaungwin
+sudo useradd -m -s /bin/bash -G sysadmin agkhantkyaw
+sudo useradd -m -s /bin/bash -G sysadmin santhiritun
+\end{lstlisting}
+
+\item Create Developer Users
+\begin{lstlisting}[language=bash]
+sudo useradd -m -s /bin/bash -G dev kghtutthaw
+sudo useradd -m -s /bin/bash -G dev hanlinhtun
+sudo useradd -m -s /bin/bash -G dev shoonlaeaung
+sudo useradd -m -s /bin/bash -G dev agmyintmyat
+\end{lstlisting}
+
+\item Set Passwords
+\begin{lstlisting}[language=bash]
+sudo passwd mgkhant
+sudo passwd agmyintmyatag
+sudo passwd gonyaungwin
+sudo passwd agkhantkyaw
+sudo passwd santhiritun
+sudo passwd kghtutthaw
+sudo passwd hanlinhtun
+sudo passwd shoonlaeaung
+sudo passwd agmyintmyat
+\end{lstlisting}
+
+\item Grant sudo to sysadmin and dev Groups
+\begin{lstlisting}[language=bash]
+sudo usermod -aG sudo mgkhant
+sudo usermod -aG sudo agmyintmyatag
+sudo usermod -aG sudo gonyaungwin
+sudo usermod -aG sudo agkhantkyaw
+sudo usermod -aG sudo santhiritun
+\end{lstlisting}
+
+\item Verify Groups
+\begin{lstlisting}[language=bash]
+groups mgkhant
+groups agmyintmyat
+\end{lstlisting}
+
+\item Lock Unused Default Accounts (Optional)
+\begin{lstlisting}[language=bash]
+sudo usermod -L <unused-default-user>
+\end{lstlisting}
+\end{enumerate}
+
+\subsection{File and Directory Permissions}
+\begin{enumerate}
+\item Create Web Directory
+\begin{lstlisting}[language=bash]
+sudo mkdir -p /var/www/app
+\end{lstlisting}
+
+\item Set Ownership
+\begin{lstlisting}[language=bash]
+sudo chown -R agmyintmyat:dev /var/www/app
+\end{lstlisting}
+
+\item Set Permissions
+\begin{lstlisting}[language=bash]
+sudo chmod 775 /var/www/app
+sudo chmod -R 664 /var/www/app/*
+\end{lstlisting}
+
+\item Verify Permissions
+\begin{lstlisting}[language=bash]
+ls -la /var/www/app/
+\end{lstlisting}
+
+\item Protect Sensitive Files (if exists)
+\begin{lstlisting}[language=bash]
+sudo chown agmyintmyat:dev /var/www/app/.env
+sudo chmod 600 /var/www/app/.env
+\end{lstlisting}
+\end{enumerate}
+
+\subsection{Apache2 Installation and Configuration}
+
+\begin{enumerate}
+\item Install Apache2
+\begin{lstlisting}[language=bash]
+sudo apt install apache2 -y
+\end{lstlisting}
+
+\item Enable Required Modules
+\begin{lstlisting}[language=bash]
+sudo a2enmod proxy
+sudo a2enmod proxy_http
+sudo a2enmod rewrite
+sudo a2enmod headers
+sudo a2enmod ssl
+\end{lstlisting}
+
+\item Generate a Self-Signed Certificate
+\begin{markdownnote}
+Access is via the VM IP address only, and Let's Encrypt cannot issue certificates for bare IPs — so a self-signed certificate is used by default. Browsers will show a one-time trust warning; this is expected.
+\end{markdownnote} 
+\begin{lstlisting}[language=bash]
+sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+    -keyout /etc/ssl/private/selfsigned.key \
+    -out /etc/ssl/certs/selfsigned.crt \
+    -subj "/CN=192.168.10.5"
+\end{lstlisting}
+\item Create Virtual Host Configuration
+\begin{lstlisting}[language=bash]
+sudo nano /etc/apache2/sites-available/app.conf
+\end{lstlisting}
+Add the following:
+\begin{lstlisting}[language=bash]
+<VirtualHost *:80>
+    ServerName 192.168.10.5
+
+    # Redirect all HTTP to HTTPS
+    RewriteEngine On
+    RewriteCond %{HTTPS} off
+    RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+</VirtualHost>
+
+<VirtualHost *:443>
+    ServerName 192.168.10.5
+
+    # SSL Configuration (self-signed certificate generated above)
+    SSLEngine on
+    SSLCertificateFile /etc/ssl/certs/selfsigned.crt
+    SSLCertificateKeyFile /etc/ssl/private/selfsigned.key
+
+    # Security headers (requires mod_headers)
+    Header always set Strict-Transport-Security "max-age=63072000; includeSubDomains"
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "SAMEORIGIN"
+
+    # Reverse proxy to Next.js
+    ProxyPreserveHost On
+    ProxyPass / http://127.0.0.1:3000/
+    ProxyPassReverse / http://127.0.0.1:3000/
+
+    # Static assets served directly by Apache (optional performance boost)
+    # ProxyPass /_next/static/ !
+    # Alias /_next/static/ /var/www/app/out/_next/static/
+
+    # Logs
+    ErrorLog ${APACHE_LOG_DIR}/app-error.log
+    CustomLog ${APACHE_LOG_DIR}/app-access.log combined
+</VirtualHost>
+\end{lstlisting}
+\begin{markdownnote}
+The virtual host configuration (\texttt{/etc/apache2/sites-available/app.conf}) defines two blocks: an HTTP-to-HTTPS redirect on port 80, and a full reverse proxy on port 443 with TLS termination:
+\end{markdownnote}
+
+\item Enable the site
+\begin{lstlisting}[language=bash]
+sudo a2ensite app.conf
+sudo a2dissite 000-default.conf
+\end{lstlisting}
+
+\item Hide Server Version (Global Config)
+Verify these values in 
+
+\texttt{/etc/apache2/conf-available/security.conf}:
+\begin{lstlisting}[language=bash]
+ServerTokens Prod
+ServerSignature Off
+\end{lstlisting}
+
+\item Test and Restart
+\begin{lstlisting}[language=bash]
+sudo apache2ctl configtest
+sudo systemctl restart apache2
+sudo systemctl enable apache2
+\end{lstlisting}
+\end{enumerate}
+
+\subsection{Node.js and Next.js Setup}
+
+\begin{enumerate}
+\item Install Node.js (System-Wide via NodeSource)
+\begin{lstlisting}[language=bash]
+curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
+sudo apt install -y nodejs
+\end{lstlisting}
+
+\item Verify:
+\begin{lstlisting}[language=bash]
+node -v
+npm -v
+\end{lstlisting}
+
+\item Install PM2
+PM2 is a process manager for Node.js that handles auto-restarts, log rotation, and startup on boot.
+\begin{lstlisting}[language=bash]
+sudo npm install -g pm2
+\end{lstlisting}
+
+\item Deploy the Next.js App
+\begin{itemize}
+\item Switch to the developer user:
+\begin{lstlisting}[language=bash]
+su agmyintmyat
+\end{lstlisting}
+\item Clone the project
+\begin{lstlisting}[language=bash]
+cd /var/www
+git clone https://github.com/ammdevl/lfs-101-notes.git app
+cd app
+\end{lstlisting}
+\item Install dependencies and build (from the repo root \texttt{/var/www/app}):
+\begin{lstlisting}[language=bash]
+npm install
+npm run build
+\end{lstlisting}
+
+\item Start the app with PM2 (from the repo root \texttt{/var/www/app}):
+\begin{lstlisting}[language=bash]
+pm2 start npm --name "nextjs" -- start
+\end{lstlisting}
+\item Save PM2 process list and get the startup command:
+\begin{lstlisting}[language=bash]
+pm2 save
+pm2 startup
+\end{lstlisting}
+\begin{markdownnote}
+PM2 prints a \texttt{sudo env PATH=...} command. Do not run it as the deployer — dev users have no sudo by design. Just copy it, then move to the next step.
+\end{markdownnote}
+\item Exit back to admin:
+\begin{markdownnote}
+Now paste the \texttt{sudo env PATH=...} command PM2 printed in previous state.
+\end{markdownnote}
+\end{itemize}
+\newpage
+
+\item Verify PM2
+\begin{lstlisting}[language=bash]
+pm2 status
+pm2 logs nextjs
+curl -I http://127.0.0.1:3000
+\end{lstlisting}
+\begin{markdownnote}
+\textbf{Note:} The app runs from the repo root \texttt{/var/www/app} — all npm commands (install, build, start) are executed in this directory. Verify \texttt{curl -I http://127.0.0.1:3000} returns 200 before troubleshooting Apache; a 503 from Apache means this backend is down.
+\end{markdownnote}
+
+\item PM2 Useful Commands
+\begin{lstlisting}[language=bash]
+pm2 restart nextjs          # restart the app
+pm2 stop nextjs             # stop the app
+pm2 delete nextjs           # remove the app
+pm2 logs nextjs             # view logs
+pm2 monit                   # real-time monitoring dashboard
+\end{lstlisting}
+
+\end{enumerate}
+
+\subsection{Setting up Firewall (UFW)}
+\begin{enumerate}
+\item Install and Enable
+\begin{lstlisting}[language=bash]
+sudo apt install ufw -y
+\end{lstlisting}
+
+\item Set rules
+\begin{lstlisting}[language=bash]
+sudo ufw default deny incoming
+sudo ufw default allow outgoing
+sudo ufw allow ssh
+sudo ufw allow 80/tcp
+sudo ufw allow 443/tcp
+\end{lstlisting}
+
+\item Enable Firewalls
+\begin{lstlisting}[language=bash]
+sudo ufw enable
+\end{lstlisting}
+
+\item Verify
+\begin{lstlisting}[language=bash]
+sudo ufw status verbose
+\end{lstlisting}
+\begin{markdownnote}
+\textbf{Important:} Only SSH, HTTP and HTTPS traffic is allowed. All other ports are blocked by default.
+\end{markdownnote}
+
+\end{enumerate}
+\newpage
+
+\subsection{Setting up Fail2ban}
+
+Fail2ban monitors SSH and Apache authentication logs, automatically banning IPs after 5 failed attempts for 1 hour:
+
+\begin{enumerate}
+\item Install
+\begin{lstlisting}[language=bash]
+sudo apt install fail2ban -y
+\end{lstlisting}
+
+\item Configure
+add:
+\begin{lstlisting}[language=bash]
+[DEFAULT]
+bantime = 3600
+findtime = 600
+maxretry = 5
+
+[sshd]
+enabled = true
+port = ssh
+logpath = /var/log/auth.log
+
+[apache-auth]
+enabled = true
+port = http,https
+logpath = /var/log/apache2/app-error.log
+\end{lstlisting}
+
+\item Start and Enable
+\begin{lstlisting}[language=bash]
+sudo systemctl start fail2ban
+sudo systemctl enable fail2ban
+\end{lstlisting}
+
+\item Verify
+\begin{lstlisting}[language=bash]
+sudo fail2ban-client status
+sudo fail2ban-client status sshd
+\end{lstlisting}
+\end{enumerate}
+\newpage
+
+\subsection{Verification}
+Run these checks to confirm everything works:
+\begin{lstlisting}[language=bash]
+# Services are running
+sudo systemctl status apache2
+pm2 status
+sudo systemctl status fail2ban
+
+# Website responds via HTTP (should redirect to HTTPS)
+curl -I http://<vm-ip>
+
+# Website responds via HTTPS (-k accepts the self-signed certificate)
+curl -kI https://<vm-ip>
+
+# Tailscale tunnel works (admin access)
+tailscale status
+ping <tailscale-ip>
+
+# SSH works over Tailscale
+ssh deployer@<tailscale-ip>
+
+# File permissions are correct
+ls -la /var/www/app/
+
+# Firewall is active
+sudo ufw status
+
+# Fail2ban is active
+sudo fail2ban-client status
+
+# Server version is hidden
+curl -skI https://<vm-ip> | grep -i server
+# Should return: Server: Apache
+\end{lstlisting}
+
+\newpage
+
+\chapter{Conclusion}
+
+\section{Conclusion}
+
+\indent This project demonstrates the practical application of Linux system administration concepts in a real-world web server deployment. By setting up Apache2 as a reverse proxy on a VMware Ubuntu 24.04 LTS virtual machine, the team applied user and group management, file permission enforcement, SSH hardening, firewall configuration, intrusion prevention, and TLS encryption.
+
+Key outcomes of the project include:
+
+\begin{itemize}[leftmargin=2em]
+    \item A fully functional web server hosting a Next.js application, accessible via HTTPS on the VM's IP address.
+    \item Least-privilege access control: the web server process, the deployer account, and administrative users each have distinct, restricted permission levels.
+    \item Defense in depth: UFW blocks unauthorized ports, fail2ban prevents brute-force attacks, SSH is hardened to key-only authentication, and Apache's server version information is hidden.
+    \item An automated deployment script (\texttt{server-setup.sh}) that reproduces the entire setup, reducing human error and enabling consistent deployments.
+    \item Comprehensive documentation including architecture diagrams, troubleshooting guides, and a version-controlled specification.
+\end{itemize}
+
+The project reinforced the importance of proper Linux administration practices. Running services as root, using wide-open file permissions, or leaving default configurations in place would have created significant security vulnerabilities. By contrast, the layered approach implemented here---separate accounts, restrictive permissions, firewall, intrusion prevention, and encryption---follows industry best practices for securing web infrastructure.
+
+\newpage
+
+\section{Appendix}
+
+\makeatletter
+\renewcommand{\listoftables}{
+  \subsection*{\listtablename}
+  \@starttoc{lot}
+}
+\makeatother
+
+\listoftables
+
+\makeatletter
+\renewcommand{\listoffigures}{
+  \subsection*{\listfigurename}
+  \@starttoc{lof}
+}
+\makeatother
+\listoffigures
+
+\newpage
+
+\section{References}
+
+\paragraph{• Ubuntu Server Guide}
+\begin{itemize}[leftmargin=2em]
+    \item \url{https://ubuntu.com/server/docs}
+\end{itemize}
+
+\paragraph{• Apache2 Documentation}
+\begin{itemize}[leftmargin=2em]
+    \item \url{https://httpd.apache.org/docs/2.4/}
+\end{itemize}
+
+\paragraph{• Apache mod\_proxy Documentation}
+\begin{itemize}[leftmargin=2em]
+    \item \url{https://httpd.apache.org/docs/2.4/mod/mod_proxy.html}
+\end{itemize}
+
+\paragraph{• Next.js Deployment Guide}
+\begin{itemize}[leftmargin=2em]
+    \item \url{https://nextjs.org/docs/deploying}
+\end{itemize}
+
+\paragraph{• Ubuntu UFW Guide}
+\begin{itemize}[leftmargin=2em]
+    \item \url{https://help.ubuntu.com/community/UFW}
+\end{itemize}
+
+\paragraph{• Fail2ban Documentation}
+\begin{itemize}[leftmargin=2em]
+    \item \url{https://github.com/fail2ban/fail2ban}
+\end{itemize}
+
+\paragraph{• Tailscale Documentation}
+\begin{itemize}[leftmargin=2em]
+    \item \url{https://tailscale.com/kb/}
+\end{itemize}
+
+\paragraph{• PM2 Process Manager}
+\begin{itemize}[leftmargin=2em]
+    \item \url{https://pm2.keymetrics.io/docs/usage/quick-start/}
+\end{itemize}
+
+\paragraph{• Netplan Configuration}
+\begin{itemize}[leftmargin=2em]
+    \item \url{https://netplan.io/}
+\end{itemize}
+
+\paragraph{• Linux File Permissions}
+\begin{itemize}[leftmargin=2em]
+    \item \url{https://www.linuxfoundation.org/blog/linux-file-permissions}
+\end{itemize}
+
+\end{document}
