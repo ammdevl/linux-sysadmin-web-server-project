@@ -42,6 +42,9 @@ The project applies lecture concepts in a real-world scenario:
 ├── SERVER_SETUP.md          # Full web server deployment guide (Apache2 + Next.js)
 ├── README.md
 ├── spec.md                  # Approved project specification
+├── docs/
+│   ├── architecture.md      # System architecture & design reference
+│   └── troubleshooting.md   # Known issues & fixes from live deployment
 ├── project-proposals/       # Member proposals & submission guide
 │   ├── HOW-TO-SUBMIT.md
 │   ├── _TEMPLATE.md
@@ -113,7 +116,9 @@ Follow the step-by-step guide in [SERVER_SETUP.md](SERVER_SETUP.md) — it cover
 | Document | Purpose |
 | --- | --- |
 | [spec.md](spec.md) | Approved specification, architecture, security plan, definition of done |
-| [SERVER_SETUP.md](SERVER_SETUP.md) | Complete server deployment walkthrough |
+| [SERVER_SETUP.md](SERVER_SETUP.md) | Complete server deployment walkthrough (step-by-step) |
+| [docs/architecture.md](docs/architecture.md) | System architecture, traffic flow, security model, file layout, boot sequence |
+| [docs/troubleshooting.md](docs/troubleshooting.md) | Known issues & fixes from real VM deployment |
 | [MEMBER_SETUP.md](MEMBER_SETUP.md) | Developer workstation tooling & Git configuration |
 | [project-proposals/](project-proposals/) | Original member proposals and submission process |
 
