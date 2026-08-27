@@ -2,7 +2,7 @@
 
 [![MIT License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![GitHub](https://img.shields.io/badge/GitHub-ammdevl-181717?logo=github)](https://github.com/ammdevl)
-[![GitHub issues](https://img.shields.io/github/issues/ammdevl/project-name.svg)](https://github.com/ammdevl/project-name/issues)
+[![GitHub issues](https://img.shields.io/github/issues/ammdevl/linux-sysadmin-web-server-project.svg)](https://github.com/ammdevl/linux-sysadmin-web-server-project/issues)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](http://makeapullrequest.com)
 
 > **Project Status:** 🔵 **Implementation Phase** — *Proposal approved by all members (2026-08-21).*
@@ -10,9 +10,11 @@
 
 ## Table of Contents
 
+- [Linux SysAdmin Web Server Project](#linux-sysadmin-web-server-project)
+- [Table of Contents](#table-of-contents)
 - [About](#about)
 - [Repository Structure](#repository-structure)
-- [Tech Stack & Tools](#tech-stack--tools)
+- [Tech Stack \& Tools](#tech-stack--tools)
 - [Architecture](#architecture)
 - [Getting Started](#getting-started)
   - [Prerequisites](#prerequisites)
@@ -99,8 +101,8 @@ Before you begin, ensure you have the following installed and configured:
 **Group members (workstation setup):**
 
 ```bash
-git clone https://github.com/<your-github-username>/project-name.git
-cd project-name/script
+git clone https://github.com/<your-github-username>/linux-sysadmin-web-server-project.git
+cd linux-sysadmin-web-server-project/script
 chmod +x member-setup.sh
 ./member-setup.sh
 ```
