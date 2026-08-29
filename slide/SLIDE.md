@@ -28,7 +28,7 @@ section {
 
 ## Linux System Administration Project
 ## Web Server
-###### Presented by Group 2
+###### Presented by
 
 ---
 
