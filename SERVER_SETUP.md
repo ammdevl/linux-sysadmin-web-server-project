@@ -57,7 +57,7 @@ The VM needs a static IP so services remain reachable after reboots.
         ens33:
           dhcp4: false
           addresses:
-            - 192.168.10.5/24
+            - 192.168.10.3/24
           routes:
             - to: default
               via: 192.168.10.2
@@ -65,7 +65,7 @@ The VM needs a static IP so services remain reachable after reboots.
             addresses: [8.8.8.8, 8.8.4.4]
     ```
 
-    > **Note:** Adjust `ens33`, `192.168.10.5`, and `192.168.10.2` to match your VMware network setup. Check your interface name with `ip a`.
+    > **Note:** Adjust `ens33`, `192.168.10.3`, and `192.168.10.2` to match your VMware network setup. Check your interface name with `ip a`.
 
 3. Test and apply:
     ```bash
@@ -93,12 +93,12 @@ sudo systemctl status ssh
 
 **Linux / macOS:**
 ```bash
-ssh <username>@192.168.10.5
+ssh <username>@192.168.10.3
 ```
 
 **Windows (PowerShell):**
 ```powershell
-ssh <username>@192.168.10.5
+ssh <username>@192.168.10.3
 ```
 
 ### Set Up Key-Based Authentication
@@ -111,12 +111,12 @@ ssh <username>@192.168.10.5
 
 2. Copy the public key to the VM:
     ```bash
-    ssh-copy-id <username>@192.168.10.5
+    ssh-copy-id <username>@192.168.10.3
     ```
 
 3. Test key-based login (should NOT ask for password):
     ```bash
-    ssh <username>@192.168.10.5
+    ssh <username>@192.168.10.3
     ```
 
 ### Disable Password Authentication and Root Login (on VM)
@@ -423,7 +423,7 @@ sudo npm install -g pm2
 
 1. Switch to deployer user:
     ```bash
-    su - agmyintmyat
+    su agmyintmyat
     ```
 
 2. Clone the project:

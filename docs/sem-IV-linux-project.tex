@@ -174,14 +174,15 @@ The objectives of this project are:
 
 \begin{figure}[h]
     \centering
-    \includegraphics[width=0.3\textwidth]{../src/os.png}
+    \fbox{\includegraphics[width=0.25\textwidth]{../src/os.png}}
     \caption{Operaing System \texttt{//Source:WiKi}}
 \end{figure}
 
 The operating system can be divided into several layers: the kernel (which interacts directly with hardware), system libraries (which provide APIs for applications), and the user interface (which allows human interaction). In server environments, reliability, security, and performance are the primary concerns, making Unix-like operating systems - particularly Linux - the dominant choice for web infrastructure.
+
 \begin{figure}[h]
     \centering
-    \includegraphics[width=0.3\textwidth]{../src/kernel.png}
+    \fbox{\includegraphics[width=0.25\textwidth]{../src/kernel.png}}
     \caption{Kernel \texttt{//Source:WiKi}}
 \end{figure}
 
@@ -200,7 +201,7 @@ Common distributions include:
 
 \begin{figure}[h]
     \centering
-    \includegraphics[width=1.0\textwidth]{../src/distro.png}
+    \fbox{\includegraphics[width=0.9\textwidth]{../src/distro.png}}
     \caption{Linux Distro \texttt{//Source:Linux Foundation}}
 \end{figure}
 
@@ -209,11 +210,7 @@ This project uses \textbf{Ubuntu 24.04 LTS} (Noble Numbat) because of its five-y
 \section{GUI and CLI}
 
 \indent A \textbf{Graphical User Interface (GUI)} allows users to interact with the system through windows, icons, and visual elements. While intuitive for desktop use, GUIs consume additional resources and are impractical for remote server management.
-\begin{figure}[h]
-    \centering
-    \includegraphics[width=0.5\textwidth]{../src/gui.png}
-    \caption{GUI \texttt{//Source:WiKi}}
-\end{figure}
+
 A \textbf{Command-Line Interface (CLI)} allows users to interact with the system by typing commands in a terminal. For server administration, the CLI is preferred because:
 
 \begin{itemize}[leftmargin=2em]
@@ -222,9 +219,16 @@ A \textbf{Command-Line Interface (CLI)} allows users to interact with the system
     \item Remote access over SSH works efficiently even on low-bandwidth connections.
     \item System configuration files are text-based and can be edited directly.
 \end{itemize}
+
 \begin{figure}[h]
     \centering
-    \includegraphics[width=0.5\textwidth]{../src/cli.png}
+    \fbox{\includegraphics[width=0.5\textwidth]{../src/gui.png}}
+    \caption{GUI \texttt{//Source:WiKi}}
+\end{figure}
+
+\begin{figure}[h]
+    \centering
+    \fbox{\includegraphics[width=0.5\textwidth]{../src/cli.png}}
     \caption{CLI \texttt{//Source:WiKi}}
 \end{figure}
 
@@ -319,7 +323,7 @@ Tailscale    & WireGuard-based VPN for administrative access \\
 
 \begin{figure}[h]
     \centering
-    \includegraphics[width=\textwidth]{../src/vmware.png}
+    \fbox{\includegraphics[width=0.9\textwidth]{../src/vmware.png}}
     \caption{VMware Workstation Pro 26H2}
 \end{figure}
  \item Now, update and upgrade the newly installed Ubuntu.
@@ -348,7 +352,7 @@ network:
     ens33:
       dhcp4: false
       addresses:
-        - 192.168.10.5/24
+        - 192.168.10.3/24
       routes:
         - to: default
           via: 192.168.10.2
@@ -357,7 +361,7 @@ network:
 \end{lstlisting}
 
 \begin{markdownnote}
-\textbf{Note:} Adjust \texttt{ens33}, \textbf{192.168.10.5}, and \textbf{192.168.10.2} to match your VMware network setup. Check your interface name with \texttt{ip a}.
+\textbf{Note:} Adjust \texttt{ens33}, \textbf{192.168.10.3}, and \textbf{192.168.10.2} to match your VMware network setup. Check your interface name with \texttt{ip a}.
 \end{markdownnote}
 
 \item Test and apply:
@@ -388,7 +392,7 @@ sudo systemctl status ssh
 \item Connect from Host Machine
 Linux/macOS:
 \begin{lstlisting}[language=bash]
-ssh <username>@192.168.10.5
+ssh <username>@192.168.10.3
 \end{lstlisting}
 
 Windows (PowerShell):
@@ -396,7 +400,7 @@ Windows (PowerShell):
 Windows PowerShell
 Copyright (C) Microsoft Coporation. All rights reserved.
 
-PS C:\Users\User> ssh <username>@192.168.10.5
+PS C:\Users\User> ssh <username>@192.168.10.3
 \end{lstlisting}
 
 \item Set Up Key-Based Authentication
@@ -407,11 +411,11 @@ ssh-keygen -t ed25519 -C "your-email@example.com"
 \end{lstlisting}
 \item Copy the public key to the VM:
 \begin{lstlisting}[language=bash]
-ssh-copy-id <username>@192.168.10.5
+ssh-copy-id <username>@192.168.10.3
 \end{lstlisting}
 \item Test key-based login (should NOT ask for password):
 \begin{lstlisting}[language=bash]
-ssh <username>@192.168.10.5
+ssh <username>@192.168.10.3
 \end{lstlisting}
 \end{itemize}
 
@@ -606,7 +610,7 @@ Access is via the VM IP address only, and Let's Encrypt cannot issue certificate
 sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
     -keyout /etc/ssl/private/selfsigned.key \
     -out /etc/ssl/certs/selfsigned.crt \
-    -subj "/CN=192.168.10.5"
+    -subj "/CN=192.168.10.3"
 \end{lstlisting}
 \item Create Virtual Host Configuration
 \begin{lstlisting}[language=bash]
@@ -615,7 +619,7 @@ sudo nano /etc/apache2/sites-available/app.conf
 Add the following:
 \begin{lstlisting}[language=bash]
 <VirtualHost *:80>
-    ServerName 192.168.10.5
+    ServerName 192.168.10.3
 
     # Redirect all HTTP to HTTPS
     RewriteEngine On
@@ -624,7 +628,7 @@ Add the following:
 </VirtualHost>
 
 <VirtualHost *:443>
-    ServerName 192.168.10.5
+    ServerName 192.168.10.3
 
     # SSL Configuration (self-signed certificate generated above)
     SSLEngine on
@@ -829,7 +833,6 @@ sudo fail2ban-client status
 sudo fail2ban-client status sshd
 \end{lstlisting}
 \end{enumerate}
-\newpage
 
 \subsection{Verification}
 Run these checks to confirm everything works:
@@ -865,6 +868,15 @@ sudo fail2ban-client status
 curl -skI https://<vm-ip> | grep -i server
 # Should return: Server: Apache
 \end{lstlisting}
+
+\vspace{1.0cm}
+Now, on your host machine, open a browser and enter \texttt{192.168.10.3} in address bar, then you will see:
+
+\begin{figure}[h]
+    \centering
+    \fbox{\includegraphics[width=0.9\textwidth]{../src/verification.png}}
+    \caption{Verification on client browser}
+\end{figure}
 
 \newpage
 
