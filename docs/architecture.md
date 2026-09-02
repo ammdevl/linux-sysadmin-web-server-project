@@ -9,19 +9,19 @@ Reference document describing how all components fit together. For step-by-step 
 │                  VMware VM                      │
 │            Ubuntu 24.04 LTS                     │
 │                                                 │
-│  ┌──────────┐  ┌──────────────────────────────┐  │
-│  │ Apache2  │  │ Static files (disk)          │  │
-│  │ :80/:443 │──│ /var/www/app/out/            │  │
-│  │ TLS +    │  │ /_next/static/ served directly│  │
-│  │ proxy +  │  └──────────────────────────────┘  │
-│  │ static   │  ┌──────┐  ┌──────┐  ┌────────┐  │
-│  │ serving  │──│ PM2  │──│ Node │──│ serve  │  │
-│  └──────────┘  │      │  │      │  │ :3000  │  │
-│                │      │  │      │  │ dynamic│  │
-│  ┌──────┐      └──────┘  └──────┘  └────────┘  │
-│  │ UFW  │  ┌────────┐  ┌───────────┐           │
-│  │      │  │fail2ban│  │ Tailscale │           │
-│  └──────┘  └────────┘  └───────────┘           │
+│  ┌──────────┐  ┌──────────────────────────────┐ │
+│  │ Apache2  │  │ Static files (disk)          │ │
+│  │ :80/:443 │──│ /var/www/app/out/            | │
+│  │ TLS +    │  │/_next/static/ served directly│ │
+│  │ proxy +  │  └──────────────────────────────┘ │
+│  │ static   │  ┌──────┐  ┌──────┐  ┌────────┐   │
+│  │ serving  │──│ PM2  │──│ Node │──│ serve  │   │
+│  └──────────┘  │      │  │      │  │ :3000  │   │
+│                │      │  │      │  │ dynamic│   │
+│  ┌──────┐      └──────┘  └──────┘  └────────┘   │
+│  │ UFW  │  ┌────────┐  ┌───────────┐            │
+│  │      │  │fail2ban│  │ Tailscale │            │
+│  └──────┘  └────────┘  └───────────┘            │
 └─────────────────────────────────────────────────┘
 ```
 
