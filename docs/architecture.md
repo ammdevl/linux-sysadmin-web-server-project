@@ -9,27 +9,33 @@ Reference document describing how all components fit together. For step-by-step 
 │                  VMware VM                      │
 │            Ubuntu 24.04 LTS                     │
 │                                                 │
-│  ┌──────────┐  ┌──────┐  ┌──────┐  ┌────────┐   │
-│  │ Apache2  │  │ PM2  │  │ Node │  │ serve  │   │
-│  │ :80/:443 │──│      │──│      │──│ :3000  │   │
-│  │ TLS +    │  │      │  │      │  │ static │   │
-│  │ proxy    │  │      │  │      │  │ export │   │
-│  └──────────┘  └──────┘  └──────┘  └────────┘   │
-│                                                 │
-│  ┌──────┐  ┌────────┐  ┌───────────┐            │
-│  │ UFW  │  │fail2ban│  │ Tailscale │            │
-│  └──────┘  └────────┘  └───────────┘            │
+│  ┌──────────┐  ┌──────────────────────────────┐  │
+│  │ Apache2  │  │ Static files (disk)          │  │
+│  │ :80/:443 │──│ /var/www/app/out/            │  │
+│  │ TLS +    │  │ /_next/static/ served directly│  │
+│  │ proxy +  │  └──────────────────────────────┘  │
+│  │ static   │  ┌──────┐  ┌──────┐  ┌────────┐  │
+│  │ serving  │──│ PM2  │──│ Node │──│ serve  │  │
+│  └──────────┘  │      │  │      │  │ :3000  │  │
+│                │      │  │      │  │ dynamic│  │
+│  ┌──────┐      └──────┘  └──────┘  └────────┘  │
+│  │ UFW  │  ┌────────┐  ┌───────────┐           │
+│  │      │  │fail2ban│  │ Tailscale │           │
+│  └──────┘  └────────┘  └───────────┘           │
 └─────────────────────────────────────────────────┘
 ```
 
 | Layer | Component | Purpose |
 | --- | --- | --- |
-| Reverse proxy | Apache2 | TLS termination, HTTP→HTTPS redirect, request forwarding |
+| Web server | Apache2 | TLS termination, HTTP→HTTPS redirect, static file serving, reverse proxy |
+| Static files | Apache2 `Alias` | Serves `_next/static/` directly from disk (bypasses Node.js) |
 | Process manager | PM2 | Auto-restart, boot persistence, log management |
-| Application | Node.js + `serve` | Serves the Next.js static export on port 3000 |
+| Application | Node.js + `serve` | Serves dynamic routes on port 3000 (proxied by Apache) |
 | Build tool | Next.js (`npm run build`) | Static HTML/CSS/JS output to `./out/` (`output: "export"`) |
+| Health check | Apache `Alias` | `/health` endpoint returns status without hitting Node.js |
 | Firewall | UFW | Allows only 22/tcp, 80/tcp, 443/tcp |
 | Intrusion prevention | fail2ban | Auto-bans IPs after 5 failed SSH/Apache auth attempts (1 hour) |
+| Backup | cron + tar | Daily backup of configs, SSL certs, app source (30-day retention) |
 | Admin tunnel | Tailscale | WireGuard-based VPN for SSH access from host only |
 
 ## Traffic Flow
@@ -41,17 +47,20 @@ Client (browser)
     │
     │  https://<vm-ip>:443
     ▼
-Apache2 (:443)  ── TLS termination (self-signed cert)
+Apache2 (:443)  ── TLS termination (self-signed ECDSA cert)
     │
-    │  ProxyPass / http://127.0.0.1:3000/
-    ▼
-PM2 → serve (:3000)  ── serves static files from /var/www/app/out/
+    ├── /_next/static/*  ── Alias ──▶ /var/www/app/out/_next/static/ (disk)
+    │
+    ├── /health  ── Alias ──▶ /var/www/app/out/health.json (disk)
+    │
+    └── /*  ── ProxyPass ──▶ PM2 → serve (:3000)
 ```
 
 1. Browser sends HTTPS request to `<vm-ip>:443`
-2. Apache2 terminates TLS using the self-signed certificate
-3. Apache forwards the request to `127.0.0.1:3000` via `ProxyPass`
-4. `serve` (managed by PM2) responds with static files from `/var/www/app/out/`
+2. Apache2 terminates TLS using the self-signed ECDSA certificate
+3. For `_next/static/` requests: Apache serves files directly from disk (fast, no Node.js)
+4. For `/health` requests: Apache serves the health check JSON from disk
+5. All other requests: Apache proxies to `127.0.0.1:3000` where `serve` (PM2) responds
 5. Response flows back through Apache to the client
 
 HTTP requests on port 80 are automatically redirected to HTTPS (301).
@@ -89,10 +98,10 @@ git pull → npm install → npm run build → pm2 restart
 │ (browser)    │      │   192.168.10.0/24     │      │ (admin)      │
 │              │      │                       │      │              │
 │  ──────────────────────────────────────▶    │      │  Tailscale   │
-│  https://192.168.10.5:443                   │      │  ─ WireGuard │
+│  https://192.168.10.3:443                   │      │  ─ WireGuard │
 └──────────────┘      │                       └──────────────┘
                       │  Gateway: 192.168.10.2
-                      │  VM IP:   192.168.10.5 (static, Netplan)
+                      │  VM IP:   192.168.10.3 (static, Netplan)
                       │  DNS:     8.8.8.8, 8.8.4.4
                       └───────────────────────┘
 ```
@@ -145,6 +154,7 @@ Group: dev (deployment only)
 | --- | --- | --- |
 | `PasswordAuthentication` | `no` | `/etc/ssh/sshd_config.d/99-hardening.conf` |
 | `PermitRootLogin` | `no` | `/etc/ssh/sshd_config.d/99-hardening.conf` |
+| `AllowGroups` | `sysadmin dev` | `/etc/ssh/sshd_config.d/99-hardening.conf` |
 | Authentication | Key-based only | SSH key pair on host |
 
 ### Firewall Rules (UFW)
@@ -177,7 +187,7 @@ Group: dev (deployment only)
 ├── styles/                       # CSS/SCSS
 ├── public/                       # static assets
 ├── next.config.js                # output: "export" + trailingSlash
-├── package.json                  # scripts: start → npx serve out
+├── package.json                  # scripts: start → serve out
 ├── package-lock.json
 └── .pm2/                         # PM2 state (managed by PM2)
 
@@ -197,8 +207,25 @@ Group: dev (deployment only)
     └── ssl.load                  # mod_ssl
 
 /etc/ssl/
-├── certs/selfsigned.crt          # self-signed TLS certificate
+├── certs/selfsigned.crt          # self-signed ECDSA TLS certificate
 └── private/selfsigned.key        # TLS private key (600)
+
+/etc/ssh/sshd_config.d/
+└── 99-hardening.conf             # PasswordAuthentication no, PermitRootLogin no, AllowGroups
+
+/etc/fail2ban/
+└── jail.local                    # SSH + Apache auth jails
+
+/etc/logrotate.d/
+└── apache2-app                   # Log rotation for app-access.log, app-error.log
+
+/etc/cron.d/
+└── server-backup                 # Daily backup at 2:37 AM
+
+/usr/local/bin/
+└── backup-server.sh              # Backup script (configs, certs, app source)
+
+/var/backups/server/              # Backup storage (30-day retention)
 
 /etc/systemd/system/
 └── pm2-agmyintmyat.service       # PM2 boot service (runs as deployer)
@@ -224,7 +251,7 @@ On VM startup, the following services start automatically:
    ├── sshd (OpenSSH server)
    ├── apache2 (web server + reverse proxy)
    ├── pm2-agmyintmyat.service (PM2 daemon, runs as agmyintmyat)
-   │   └── restores saved process list → npx serve out → port 3000
+   │   └── restores saved process list → serve /var/www/app/out → port 3000
    ├── ufw (firewall)
    ├── fail2ban (intrusion prevention)
    └── tailscale (admin tunnel, if configured)
@@ -238,10 +265,9 @@ On VM startup, the following services start automatically:
 
 | Port | Service | Binding | Access |
 | --- | --- | --- | --- |
-| 22 | SSH (sshd) | 0.0.0.0 | Key-only auth |
+| 22 | SSH (sshd) | 0.0.0.0 | Key-only auth, AllowGroups=sysadmin,dev |
 | 80 | Apache2 | 0.0.0.0 | HTTP → 301 redirect to HTTPS |
-| 443 | Apache2 | 0.0.0.0 | TLS termination + reverse proxy |
-| 3000 | PM2 / `serve` | 127.0.0.1 | Localhost only (Apache proxies) |
-| 41641 | Tailscale | 0.0.0.0 | WireGuard tunnel (admin) |
+| 443 | Apache2 | 0.0.0.0 | TLS (ECDSA) + static files + reverse proxy |
+| 3000 | PM2 / `serve` | 127.0.0.1 | Localhost only (Apache proxies dynamic routes) |
 
-Port 3000 is only accessible from localhost — external clients reach it exclusively through Apache on :443.
+Port 3000 is only accessible from localhost — external clients reach it exclusively through Apache on :443. Static assets (`_next/static/`) and the health check endpoint are served directly by Apache from disk.

@@ -12,7 +12,7 @@ Known issues and fixes encountered during deployment. Every fix here was verifie
 | HTTP redirect loop / no cert | [Redirect before cert](#4-http-redirect-before-certificate-exists) | Generate self-signed cert **before** writing vhost |
 | `pm2 startup` fails for deployer | [PM2 sudo](#5-pm2-startup-sudo-required) | Run from admin account, not deployer |
 | No `backend/` directory | [Static export](#6-no-backend-directory--static-export) | Repo root has no `backend/`; run npm from root |
-| `next start` fails | [Next start vs serve](#7-next-start-fails-with-static-export) | Use `npx serve out`, not `next start` |
+| `next start` fails | [Next start vs serve](#7-next-start-fails-with-static-export) | Use `serve`, not `next start` |
 | Let's Encrypt refuses bare IP | [Certbot IP](#8-lets-encrypt-refuses-bare-ip) | Use self-signed cert instead |
 | Server version exposed | [ServerTokens](#9-server-version-exposed-in-headers) | Set in `/etc/apache2/conf-available/security.conf` |
 
@@ -63,7 +63,7 @@ sudo tail -5 /var/log/apache2/app-error.log
 
 | PM2 status | Meaning | Fix |
 | --- | --- | --- |
-| `[empty]` | Process never started | `pm2 start npm --name nextjs -- start` |
+| `[empty]` | Process never started | `pm2 start serve --name nextjs -- /var/www/app/out` |
 | `errored` | App crashed on start | `pm2 logs nextjs` — check for missing `.env`, build failure, wrong directory |
 | `stopped` | Manually stopped | `pm2 restart nextjs` |
 | `online` but no response | Port conflict or wrong host | `ss -tlnp | grep 3000` — check binding |
@@ -75,7 +75,7 @@ cd /var/www/app
 ls out/index.html          # must exist (static export)
 
 # 2. Start/restart PM2
-sudo -H -u agmyintmyat bash -c "cd /var/www/app && pm2 restart nextjs || pm2 start npm --name 'nextjs' -- start"
+sudo -H -u agmyintmyat bash -c "pm2 restart nextjs || pm2 start serve --name 'nextjs' -- /var/www/app/out"
 
 # 3. Verify locally before touching Apache
 curl -I http://127.0.0.1:3000    # must return HTTP 200
@@ -104,7 +104,7 @@ sudo a2enconf servername
 sudo systemctl restart apache2
 ```
 
-Replace `<vm-ip>` with your actual VM IP (e.g., `192.168.10.5`).
+Replace `<vm-ip>` with your actual VM IP (e.g., `192.168.10.3`).
 
 **Prevention:** [SERVER_SETUP.md](../SERVER_SETUP.md) §7 includes this step ("Suppress the FQDN Warning").
 
@@ -121,7 +121,8 @@ Replace `<vm-ip>` with your actual VM IP (e.g., `192.168.10.5`).
 
 ```bash
 # 1. Generate cert (BEFORE writing app.conf)
-sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+sudo openssl req -x509 -nodes -days 365 \
+    -newkey ec -pkeyopt ec_paramgen_curve:prime256v1 \
     -keyout /etc/ssl/private/selfsigned.key \
     -out /etc/ssl/certs/selfsigned.crt \
     -subj "/CN=<vm-ip>"
@@ -198,16 +199,17 @@ The app uses `output: "export"` in `next.config.js` — the build produces stati
 ```bash
 next start
 Error: "next start" does not work with "output: "export"" configuration.
-Use "npx serve out" instead.
+Use "serve" or "npx serve out" instead.
 ```
 
 **Root cause:** The app's `next.config.js` sets `output: "export"`. The `next start` command is for server-rendered apps only.
 
-**Fix:** The app's `package.json` already handles this — `"start": "npx serve out"` runs the static server. PM2 starts this automatically:
+**Fix:** Install `serve` globally and run it directly with PM2:
 
 ```bash
-pm2 start npm --name "nextjs" -- start
-# This runs: npx serve out (serves ./out on port 3000)
+npm install -g serve
+pm2 start serve --name "nextjs" -- /var/www/app/out
+# Serves the static build from ./out on port 3000
 ```
 
 Do not try to use `next start` directly.
@@ -216,7 +218,7 @@ Do not try to use `next start` directly.
 
 **Symptom:**
 ```bash
-sudo certbot --apache -d 192.168.10.5
+sudo certbot --apache -d 192.168.10.3
 Certbot failed to authenticate some domains
 ```
 
@@ -224,7 +226,8 @@ Certbot failed to authenticate some domains
 
 **Fix for IP-only access:** Use the self-signed certificate already generated in §7:
 ```bash
-sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+sudo openssl req -x509 -nodes -days 365 \
+    -newkey ec -pkeyopt ec_paramgen_curve:prime256v1 \
     -keyout /etc/ssl/private/selfsigned.key \
     -out /etc/ssl/certs/selfsigned.crt \
     -subj "/CN=<vm-ip>"
