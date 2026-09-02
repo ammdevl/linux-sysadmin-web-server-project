@@ -162,7 +162,6 @@ The objectives of this project are:
     \item Deploy fail2ban to automatically ban IPs after repeated failed login attempts.
     \item Use Tailscale for secure remote administration via a WireGuard tunnel.
     \item Automate the deployment process with a Bash script for reproducibility.
-    \item Document the full architecture, setup procedure, and known issues for future reference.
 \end{enumerate}
 
 \newpage
@@ -175,7 +174,7 @@ The objectives of this project are:
 \begin{figure}[h]
     \centering
     \fbox{\includegraphics[width=0.25\textwidth]{../src/os.png}}
-    \caption{Operaing System \texttt{//Source:WiKi}}
+    \caption{Operating System \texttt{//Source:WiKi}}
 \end{figure}
 
 The operating system can be divided into several layers: the kernel (which interacts directly with hardware), system libraries (which provide APIs for applications), and the user interface (which allows human interaction). In server environments, reliability, security, and performance are the primary concerns, making Unix-like operating systems - particularly Linux - the dominant choice for web infrastructure.
@@ -326,10 +325,13 @@ Tailscale    & WireGuard-based VPN for administrative access \\
     \fbox{\includegraphics[width=0.9\textwidth]{../src/vmware.png}}
     \caption{VMware Workstation Pro 26H2}
 \end{figure}
- \item Now, update and upgrade the newly installed Ubuntu.
+ \item Now, update and upgrade the newly installed Ubuntu, and install prerequisite packages.
   \begin{lstlisting}[language=bash]
-   sudo apt update
-   sudo apt upgrade\end{lstlisting}
+   sudo apt update && sudo apt upgrade -y
+   sudo apt install -y git curl openssl\end{lstlisting}
+\begin{markdownnote}
+\texttt{git} is needed to clone the app repository. \texttt{curl} and \texttt{openssl} are used for Tailscale installation and certificate generation.
+\end{markdownnote}
 \end{enumerate}
 
 \section{Server Configuration}
@@ -387,7 +389,6 @@ sudo apt install openssh-server -y
 \begin{lstlisting}[language=bash]
 sudo systemctl status ssh
 \end{lstlisting}
-\newpage
 
 \item Connect from Host Machine
 Linux/macOS:
@@ -429,14 +430,18 @@ sudo nano /etc/ssh/sshd_config
 \begin{lstlisting}[language=bash]
 PasswordAuthentication no
 PermitRootLogin no
+AllowGroups sysadmin dev
 \end{lstlisting}
+\begin{markdownnote}
+\textbf{AllowGroups} restricts SSH login to members of the \texttt{sysadmin} or \texttt{dev} groups only. Other system accounts cannot log in via SSH even if they have valid keys.
+\end{markdownnote}
 \item Restart SSH:
 \begin{lstlisting}[language=bash]
 sudo systemctl restart ssh
 \end{lstlisting}
 \end{itemize}
 \begin{markdownnote}
-\textbf{Security:} SSH was hardened to allow key-based authentication only. Password authentication and root login were disabled.
+\textbf{Security:} SSH was hardened to allow key-based authentication only. Password authentication and root login were disabled. Only users in the \texttt{sysadmin} or \texttt{dev} groups can log in.
 \end{markdownnote}
 \end{enumerate}
 
@@ -534,13 +539,22 @@ sudo passwd shoonlaeaung
 sudo passwd agmyintmyat
 \end{lstlisting}
 
-\item Grant sudo to sysadmin and dev Groups
+\begin{markdownnote}
+\textbf{Note:} For project demos on the isolated lab VM, \texttt{12345678} is used as the shared password — never reuse it outside the lab.
+\end{markdownnote}
+
+\item Grant sudo to sysadmin group
 \begin{lstlisting}[language=bash]
 sudo usermod -aG sudo mgkhant
 sudo usermod -aG sudo agmyintmyatag
 sudo usermod -aG sudo gonyaungwin
 sudo usermod -aG sudo agkhantkyaw
 sudo usermod -aG sudo santhiritun
+\end{lstlisting}
+
+\item Grant sudo to deployer user
+\begin{lstlisting}[language=bash]
+sudo usermod -aG sudo agmyintmyat
 \end{lstlisting}
 
 \item Verify Groups
@@ -578,11 +592,14 @@ sudo chmod -R 664 /var/www/app/*
 ls -la /var/www/app/
 \end{lstlisting}
 
-\item Protect Sensitive Files (if exists)
+\item Protect Sensitive Files (if applicable)
 \begin{lstlisting}[language=bash]
 sudo chown agmyintmyat:dev /var/www/app/.env
 sudo chmod 600 /var/www/app/.env
 \end{lstlisting}
+\begin{markdownnote}
+If the application uses a \texttt{.env} file (e.g., for API keys or secrets), restrict it to the owner. The \texttt{lfs-101-notes} app is a static export and does not use a \texttt{.env} file at runtime --- this step only applies if your app requires one.
+\end{markdownnote}
 \end{enumerate}
 
 \subsection{Apache2 Installation and Configuration}
@@ -607,7 +624,8 @@ sudo a2enmod ssl
 Access is via the VM IP address only, and Let's Encrypt cannot issue certificates for bare IPs — so a self-signed certificate is used by default. Browsers will show a one-time trust warning; this is expected.
 \end{markdownnote} 
 \begin{lstlisting}[language=bash]
-sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+sudo openssl req -x509 -nodes -days 365 \
+    -newkey ec -pkeyopt ec_paramgen_curve:prime256v1 \
     -keyout /etc/ssl/private/selfsigned.key \
     -out /etc/ssl/certs/selfsigned.crt \
     -subj "/CN=192.168.10.3"
@@ -640,14 +658,18 @@ Add the following:
     Header always set X-Content-Type-Options "nosniff"
     Header always set X-Frame-Options "SAMEORIGIN"
 
+    # Health check - served directly by Apache, bypasses Node.js
+    ProxyPass /health !
+    Alias /health /var/www/app/out/health.html
+
+    # Static assets served directly by Apache (bypass Node.js)
+    ProxyPass /_next/static/ !
+    Alias /_next/static/ /var/www/app/out/_next/static/
+
     # Reverse proxy to Next.js
     ProxyPreserveHost On
     ProxyPass / http://127.0.0.1:3000/
     ProxyPassReverse / http://127.0.0.1:3000/
-
-    # Static assets served directly by Apache (optional performance boost)
-    # ProxyPass /_next/static/ !
-    # Alias /_next/static/ /var/www/app/out/_next/static/
 
     # Logs
     ErrorLog ${APACHE_LOG_DIR}/app-error.log
@@ -655,7 +677,7 @@ Add the following:
 </VirtualHost>
 \end{lstlisting}
 \begin{markdownnote}
-The virtual host configuration (\texttt{/etc/apache2/sites-available/app.conf}) defines two blocks: an HTTP-to-HTTPS redirect on port 80, and a full reverse proxy on port 443 with TLS termination:
+The virtual host configuration (\texttt{/etc/apache2/sites-available/app.conf}) defines two blocks: an HTTP-to-HTTPS redirect on port 80, and a full reverse proxy on port 443 with TLS termination. Static assets (\texttt{\_next/static/}) and the health check endpoint are served directly by Apache, bypassing Node.js entirely:
 \end{markdownnote}
 
 \item Enable the site
@@ -701,12 +723,14 @@ PM2 is a process manager for Node.js that handles auto-restarts, log rotation, a
 \begin{lstlisting}[language=bash]
 sudo npm install -g pm2
 \end{lstlisting}
+\begin{markdownnote}
+\textbf{Important:} Install PM2 as root (with \texttt{sudo}) \textbf{before} switching to the deployer user in the next step. A global install ensures PM2 is available in all users' PATH.
+\end{markdownnote}
 
 \item Deploy the Next.js App
-\begin{itemize}
-\item Switch to the developer user:
+\item Login with the developer user:
 \begin{lstlisting}[language=bash]
-su agmyintmyat
+ssh agmyintmyat@<tailscale-ip>
 \end{lstlisting}
 \item Clone the project
 \begin{lstlisting}[language=bash]
@@ -722,21 +746,21 @@ npm run build
 
 \item Start the app with PM2 (from the repo root \texttt{/var/www/app}):
 \begin{lstlisting}[language=bash]
-pm2 start npm --name "nextjs" -- start
+npm install -g serve
+pm2 start serve --name "nextjs" -- /var/www/app/out
 \end{lstlisting}
+\begin{markdownnote}
+Installing \texttt{serve} globally and running it directly avoids the overhead of \texttt{npx} downloading the package on every cold start.
+\end{markdownnote}
 \item Save PM2 process list and get the startup command:
 \begin{lstlisting}[language=bash]
 pm2 save
 pm2 startup
 \end{lstlisting}
 \begin{markdownnote}
-PM2 prints a \texttt{sudo env PATH=...} command. Do not run it as the deployer — dev users have no sudo by design. Just copy it, then move to the next step.
+PM2 prints a \texttt{sudo env PATH=...} command. Just copy and paste it to enable PM2 to start on boot.
 \end{markdownnote}
-\item Exit back to admin:
-\begin{markdownnote}
-Now paste the \texttt{sudo env PATH=...} command PM2 printed in previous state.
-\end{markdownnote}
-\end{itemize}
+\item Exit back and login with sysadmin.
 \newpage
 
 \item Verify PM2
@@ -834,39 +858,105 @@ sudo fail2ban-client status sshd
 \end{lstlisting}
 \end{enumerate}
 
+\subsection{Automated Backups}
+Configure automated daily backups of server configs, SSL certs, and app source:
+
+\begin{lstlisting}[language=bash]
+sudo tee /usr/local/bin/backup-server.sh > /dev/null <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+BACKUP_DIR="/var/backups/server"
+DATE=$(date +%Y-%m-%d)
+KEEP_DAYS=30
+mkdir -p "$BACKUP_DIR"
+tar czf "$BACKUP_DIR/apache-config-$DATE.tar.gz" \
+    /etc/apache2/sites-available/ /etc/apache2/conf-available/ \
+    /etc/logrotate.d/apache2-app 2>/dev/null
+tar czf "$BACKUP_DIR/ssl-certs-$DATE.tar.gz" \
+    /etc/ssl/certs/selfsigned.crt /etc/ssl/private/selfsigned.key 2>/dev/null
+cp /etc/ssh/sshd_config "$BACKUP_DIR/ssh-hardening-$DATE.conf" 2>/dev/null || true
+cp /etc/fail2ban/jail.local "$BACKUP_DIR/fail2ban-jail-$DATE.local" 2>/dev/null || true
+sudo -H -u agmyintmyat pm2 save --force 2>/dev/null || true
+cp /home/agmyintmyat/.pm2/dump.pm2 "$BACKUP_DIR/pm2-dump-$DATE.json" 2>/dev/null || true
+if [[ -d /var/www/app/.git ]]; then
+    tar czf "$BACKUP_DIR/app-source-$DATE.tar.gz" \
+        --exclude='node_modules' --exclude='.next' \
+        -C /var/www app 2>/dev/null
+fi
+find "$BACKUP_DIR" -name "*.tar.gz" -mtime +$KEEP_DAYS -delete 2>/dev/null || true
+find "$BACKUP_DIR" -name "*.conf" -mtime +$KEEP_DAYS -delete 2>/dev/null || true
+find "$BACKUP_DIR" -name "*.local" -mtime +$KEEP_DAYS -delete 2>/dev/null || true
+find "$BACKUP_DIR" -name "*.json" -mtime +$KEEP_DAYS -delete 2>/dev/null || true
+EOF
+sudo chmod +x /usr/local/bin/backup-server.sh
+\end{lstlisting}
+
+Schedule daily execution:
+
+\begin{lstlisting}[language=bash]
+echo '37 2 * * * root /usr/local/bin/backup-server.sh >> /var/log/server-backup.log 2>&1' | \
+    sudo tee /etc/cron.d/server-backup
+\end{lstlisting}
+
+Run the initial backup:
+
+\begin{lstlisting}[language=bash]
+sudo /usr/local/bin/backup-server.sh
+ls -la /var/backups/server/
+\end{lstlisting}
+
 \subsection{Verification}
 Run these checks to confirm everything works:
+
+\textbf{Services:}
 \begin{lstlisting}[language=bash]
-# Services are running
 sudo systemctl status apache2
-pm2 status
-sudo systemctl status fail2ban
+sudo systemctl is-active fail2ban
+sudo -H -u agmyintmyat pm2 status
+\end{lstlisting}
 
-# Website responds via HTTP (should redirect to HTTPS)
-curl -I http://<vm-ip>
+\textbf{HTTP to HTTPS redirect:}
+\begin{lstlisting}[language=bash]
+curl -I http://192.168.10.3
+# Should return: HTTP/1.1 301 Moved Permanently
+#                Location: https://192.168.10.3/
+\end{lstlisting}
 
-# Website responds via HTTPS (-k accepts the self-signed certificate)
-curl -kI https://<vm-ip>
+\textbf{HTTPS serving:}
+\begin{lstlisting}[language=bash]
+curl -skI https://192.168.10.3
+# Should return: HTTP/1.1 200 OK
+\end{lstlisting}
 
-# Tailscale tunnel works (admin access)
-tailscale status
-ping <tailscale-ip>
+\textbf{Server version hidden:}
+\begin{lstlisting}[language=bash]
+curl -skI https://192.168.10.3 | grep -i server
+# Should return: Server: Apache (no version number)
+\end{lstlisting}
 
-# SSH works over Tailscale
-ssh deployer@<tailscale-ip>
-
-# File permissions are correct
+\textbf{File permissions:}
+\begin{lstlisting}[language=bash]
 ls -la /var/www/app/
+# Expected: drwxrwxr-x agmyintmyat dev
+\end{lstlisting}
 
-# Firewall is active
-sudo ufw status
+\textbf{Firewall:}
+\begin{lstlisting}[language=bash]
+sudo ufw status verbose
+# Status: active, only 22/tcp, 80/tcp, 443/tcp allowed
+\end{lstlisting}
 
-# Fail2ban is active
+\textbf{Fail2ban:}
+\begin{lstlisting}[language=bash]
 sudo fail2ban-client status
+sudo fail2ban-client status sshd
+\end{lstlisting}
 
-# Server version is hidden
-curl -skI https://<vm-ip> | grep -i server
-# Should return: Server: Apache
+\textbf{Boot persistence:}
+\begin{lstlisting}[language=bash]
+sudo systemctl is-enabled apache2    # should return: enabled
+sudo systemctl is-enabled fail2ban   # should return: enabled
+sudo systemctl is-enabled pm2-agmyintmyat  # should return: enabled
 \end{lstlisting}
 
 \vspace{1.0cm}
@@ -909,28 +999,6 @@ cd linux-sysadmin-web-server-project/
 
 # Now follow README.md
 \end{lstlisting}
-
-\newpage
-
-\section{Appendix}
-
-\makeatletter
-\renewcommand{\listoftables}{
-  \subsection*{\listtablename}
-  \@starttoc{lot}
-}
-\makeatother
-
-\listoftables
-
-\makeatletter
-\renewcommand{\listoffigures}{
-  \subsection*{\listfigurename}
-  \@starttoc{lof}
-}
-\makeatother
-\listoffigures
-
 \newpage
 
 \section{References}

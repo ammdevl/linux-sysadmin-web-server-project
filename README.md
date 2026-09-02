@@ -40,20 +40,24 @@ The project applies lecture concepts in a real-world scenario:
 ```bash
 .
 ├── LICENSE
-├── MEMBER_SETUP.md          # One-time tooling setup for group members
-├── SERVER_SETUP.md          # Full web server deployment guide (Apache2 + Next.js)
+├── SERVER_SETUP.md          # Full web server deployment guide
+├── DEPLOY.md                # Deployment & operations runbook
 ├── README.md
 ├── spec.md                  # Approved project specification
 ├── docs/
 │   ├── architecture.md      # System architecture & design reference
-│   └── troubleshooting.md   # Known issues & fixes from live deployment
+│   ├── troubleshooting.md   # Known issues & fixes from live deployment
+│   └── adr/                 # Architecture Decision Records
+│       ├── 001-apache-over-nginx.md
+│       ├── 002-pm2-over-systemd.md
+│       ├── 003-self-signed-over-lets-encrypt.md
+│       └── 004-static-export-over-ssr.md
 ├── project-proposals/       # Member proposals & submission guide
 │   ├── HOW-TO-SUBMIT.md
 │   ├── _TEMPLATE.md
 │   └── ...
 └── script/
-    ├── member-setup.sh      # Automates MEMBER_SETUP.md
-    └── server-setup.sh      # Server provisioning (in progress)
+    └── server-setup.sh      # Automated server provisioning
 ```
 
 ## Tech Stack & Tools
@@ -98,20 +102,7 @@ Before you begin, ensure you have the following installed and configured:
 
 ### Installation
 
-**Group members (workstation setup):**
-
-```bash
-git clone https://github.com/<your-github-username>/linux-sysadmin-web-server-project.git
-cd linux-sysadmin-web-server-project/script
-chmod +x member-setup.sh
-./member-setup.sh
-```
-
-See [MEMBER_SETUP.md](MEMBER_SETUP.md) for details.
-
-**Server deployment (VM):**
-
-Follow the step-by-step guide in [SERVER_SETUP.md](SERVER_SETUP.md) — it covers network configuration, SSH hardening, user/group creation, Apache2, PM2, SSL, firewall, and fail2ban.
+Follow the step-by-step guide in [SERVER_SETUP.md](SERVER_SETUP.md) — it covers network configuration, SSH hardening, user/group creation, Apache2, PM2, SSL, firewall, and fail2ban. An automated script (`script/server-setup.sh`) is also available to reproduce the full setup.
 
 ## Documentation
 
@@ -119,9 +110,10 @@ Follow the step-by-step guide in [SERVER_SETUP.md](SERVER_SETUP.md) — it cover
 | --- | --- |
 | [spec.md](spec.md) | Approved specification, architecture, security plan, definition of done |
 | [SERVER_SETUP.md](SERVER_SETUP.md) | Complete server deployment walkthrough (step-by-step) |
+| [DEPLOY.md](DEPLOY.md) | Deployment workflow, operations runbook, key revocation, backup & recovery |
 | [docs/architecture.md](docs/architecture.md) | System architecture, traffic flow, security model, file layout, boot sequence |
 | [docs/troubleshooting.md](docs/troubleshooting.md) | Known issues & fixes from real VM deployment |
-| [MEMBER_SETUP.md](MEMBER_SETUP.md) | Developer workstation tooling & Git configuration |
+| [docs/adr/](docs/adr/) | Architecture Decision Records (why Apache, PM2, self-signed, static export) |
 | [project-proposals/](project-proposals/) | Original member proposals and submission process |
 
 ## Group Members

@@ -15,7 +15,8 @@ Step-by-step guide to set up an Apache2 + Next.js web server on a VMware Ubuntu 
 9. [SSL/TLS with Certbot](#9-ssltls-with-certbot)
 10. [Firewall (UFW)](#10-firewall-ufw)
 11. [Fail2ban](#11-fail2ban)
-12. [Verification](#12-verification)
+12. [Backup](#12-backup)
+13. [Verification](#13-verification)
 
 ## 1. Prerequisites
 
@@ -36,6 +37,17 @@ Before starting, ensure you have:
    - **Disk:** 40 GB+
    - **Network:** NAT (we'll configure static IP later)
 4. Complete the installation and boot into Ubuntu
+
+### Update the System
+
+After the first boot, update the system and install prerequisite packages:
+
+```bash
+sudo apt update && sudo apt upgrade -y
+sudo apt install -y git curl openssl
+```
+
+> `git` is needed to clone the app repository in §8. `curl` and `openssl` are used for Tailscale installation and certificate generation.
 
 ## 2. Network Configuration
 
@@ -119,6 +131,27 @@ ssh <username>@192.168.10.3
     ssh <username>@192.168.10.3
     ```
 
+### Team Key Distribution
+
+Each team member must add their own SSH key to the VM before password authentication is disabled. Repeat the following **on each member's host machine**:
+
+1. Generate a key pair (skip if you already have one):
+    ```bash
+    ssh-keygen -t ed25519 -C "your-email@example.com"
+    ```
+
+2. Copy the public key to the VM:
+    ```bash
+    ssh-copy-id <username>@192.168.10.3
+    ```
+
+3. Verify you can log in without a password:
+    ```bash
+    ssh <username>@192.168.10.3
+    ```
+
+> **Important:** Complete this for every team member **before** proceeding to the next step. Once password authentication is disabled, there is no way to add keys remotely — you would need console access from VMware.
+
 ### Disable Password Authentication and Root Login (on VM)
 
 > **Security:** Root login is disabled to prevent direct remote access to the root account. All administration is done through regular users with `sudo`.
@@ -132,6 +165,7 @@ ssh <username>@192.168.10.3
     ```
     PasswordAuthentication no
     PermitRootLogin no
+    AllowGroups sysadmin dev
     ```
 
 3. Restart SSH:
@@ -275,11 +309,14 @@ ls -la /var/www/app/
 
 ### Protect Sensitive Files
 
+If the application uses a `.env` file (e.g., for API keys or secrets), restrict it to the owner:
+
 ```bash
-# If .env exists, restrict to owner only
 sudo chown agmyintmyat:dev /var/www/app/.env
 sudo chmod 600 /var/www/app/.env
 ```
+
+> **Note:** The [lfs-101-notes](https://github.com/ammdevl/lfs-101-notes) app is a static export and does not use a `.env` file at runtime — this step only applies if your app requires one.
 
 ## 7. Apache2 Installation & Configuration
 
@@ -303,10 +340,11 @@ sudo a2enmod ssl
 
 > Access is via the VM IP address only, and Let's Encrypt cannot issue certificates for bare IPs — so a self-signed certificate is used by default. Browsers will show a one-time trust warning; this is expected.
 
-Generate the certificate **before** creating the VirtualHost so Apache passes `configtest` on the first try:
+Generate the certificate **before** creating the VirtualHost so Apache passes `configtest` on the first try. ECDSA (P-256) is used instead of RSA for stronger security and faster handshakes:
 
 ```bash
-sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+sudo openssl req -x509 -nodes -days 365 \
+    -newkey ec -pkeyopt ec_paramgen_curve:prime256v1 \
     -keyout /etc/ssl/private/selfsigned.key \
     -out /etc/ssl/certs/selfsigned.crt \
     -subj "/CN=<vm-ip>"
@@ -332,7 +370,7 @@ Add the following:
 <VirtualHost *:443>
     ServerName <vm-ip>
 
-    # SSL Configuration (self-signed certificate generated above)
+    # SSL Configuration (self-signed ECDSA certificate generated above)
     SSLEngine on
     SSLCertificateFile /etc/ssl/certs/selfsigned.crt
     SSLCertificateKeyFile /etc/ssl/private/selfsigned.key
@@ -342,14 +380,19 @@ Add the following:
     Header always set X-Content-Type-Options "nosniff"
     Header always set X-Frame-Options "SAMEORIGIN"
 
-    # Reverse proxy to Next.js
+    # Static files served directly by Apache (performance)
+    # Skip proxy for _next/static/ — serve immutable assets from disk
+    ProxyPass /_next/static/ !
+    Alias /_next/static/ /var/www/app/out/_next/static/
+
+    # All other requests proxied to Node.js (PM2)
     ProxyPreserveHost On
     ProxyPass / http://127.0.0.1:3000/
     ProxyPassReverse / http://127.0.0.1:3000/
 
-    # Static assets served directly by Apache (optional performance boost)
-    # ProxyPass /_next/static/ !
-    # Alias /_next/static/ /var/www/app/out/_next/static/
+    # Health check endpoint (returns 200 without hitting Node.js)
+    ProxyPass /health !
+    Alias /health /var/www/app/out/health.html
 
     # Logs
     ErrorLog ${APACHE_LOG_DIR}/app-error.log
@@ -419,6 +462,8 @@ PM2 is a process manager for Node.js that handles auto-restarts, log rotation, a
 sudo npm install -g pm2
 ```
 
+> **Important:** Install PM2 as root (with `sudo`) **before** switching to the deployer user in the next step. A global install ensures PM2 is available in all users' PATH.
+
 ### Deploy the Next.js App
 
 1. Switch to deployer user:
@@ -442,9 +487,10 @@ sudo npm install -g pm2
 
 4. Start the app with PM2 (from the repo root `/var/www/app`):
     ```bash
-    pm2 start npm --name "nextjs" -- start
+    npm install -g serve
+    pm2 start serve --name "nextjs" -- /var/www/app/out
     ```
-    > The app's `start` script runs `npx serve out`, which serves the static build on port 3000. Do NOT use `next start` — it fails with a static export (`output: "export"`) configuration.
+    > This serves the static build from `./out` on port 3000. Do NOT use `next start` — it fails with a static export (`output: "export"`) configuration. Installing `serve` globally avoids `npx` downloading it on every cold start.
 
 5. Save PM2 process list and get the startup command:
     ```bash
@@ -583,41 +629,156 @@ sudo fail2ban-client status
 sudo fail2ban-client status sshd
 ```
 
-## 12. Verification
+## 12. Backup
+
+Configure automated daily backups of server configs, SSL certs, and app source:
+
+```bash
+sudo tee /usr/local/bin/backup-server.sh > /dev/null <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+BACKUP_DIR="/var/backups/server"
+DATE=$(date +%Y-%m-%d)
+KEEP_DAYS=30
+mkdir -p "$BACKUP_DIR"
+tar czf "$BACKUP_DIR/apache-config-$DATE.tar.gz" /etc/apache2/sites-available/ /etc/apache2/conf-available/ /etc/logrotate.d/apache2-app 2>/dev/null
+tar czf "$BACKUP_DIR/ssl-certs-$DATE.tar.gz" /etc/ssl/certs/selfsigned.crt /etc/ssl/private/selfsigned.key 2>/dev/null
+cp /etc/ssh/sshd_config "$BACKUP_DIR/ssh-hardening-$DATE.conf" 2>/dev/null || true
+cp /etc/fail2ban/jail.local "$BACKUP_DIR/fail2ban-jail-$DATE.local" 2>/dev/null || true
+sudo -H -u agmyintmyat pm2 save --force 2>/dev/null || true
+cp /home/agmyintmyat/.pm2/dump.pm2 "$BACKUP_DIR/pm2-dump-$DATE.json" 2>/dev/null || true
+if [[ -d /var/www/app/.git ]]; then
+    tar czf "$BACKUP_DIR/app-source-$DATE.tar.gz" \
+        --exclude='node_modules' --exclude='.next' \
+        -C /var/www app 2>/dev/null
+fi
+find "$BACKUP_DIR" -name "*.tar.gz" -mtime +$KEEP_DAYS -delete 2>/dev/null || true
+find "$BACKUP_DIR" -name "*.conf" -mtime +$KEEP_DAYS -delete 2>/dev/null || true
+find "$BACKUP_DIR" -name "*.local" -mtime +$KEEP_DAYS -delete 2>/dev/null || true
+find "$BACKUP_DIR" -name "*.json" -mtime +$KEEP_DAYS -delete 2>/dev/null || true
+EOF
+sudo chmod +x /usr/local/bin/backup-server.sh
+```
+
+Schedule daily execution:
+
+```bash
+echo '37 2 * * * root /usr/local/bin/backup-server.sh >> /var/log/server-backup.log 2>&1' | sudo tee /etc/cron.d/server-backup
+```
+
+Run the initial backup:
+
+```bash
+sudo /usr/local/bin/backup-server.sh
+ls -la /var/backups/server/
+```
+
+## 13. Verification
 
 Run these checks to confirm everything works:
 
+### Services
+
 ```bash
-# Services are running
 sudo systemctl status apache2
-pm2 status
-sudo systemctl status fail2ban
+sudo systemctl is-active fail2ban
+sudo -H -u agmyintmyat pm2 status
+```
 
-# Website responds via HTTP (should redirect to HTTPS)
+### HTTP → HTTPS Redirect
+
+```bash
 curl -I http://<vm-ip>
+# Should return: HTTP/1.1 301 Moved Permanently
+#                Location: https://<vm-ip>/
+```
 
-# Website responds via HTTPS (-k accepts the self-signed certificate)
-curl -kI https://<vm-ip>
+### HTTPS Serving
 
-# Tailscale tunnel works (admin access)
+```bash
+curl -skI https://<vm-ip>
+# Should return: HTTP/1.1 200 OK
+```
+
+### Health Check Endpoint
+
+```bash
+curl -sk https://<vm-ip>/health
+# Should return: HTML page with "Service OK"
+```
+
+### Static Assets (served directly by Apache)
+
+```bash
+curl -skI https://<vm-ip>/_next/static/
+# Should return: HTTP/1.1 200 OK (Apache serving from disk)
+```
+
+### Server Version Hidden
+
+```bash
+curl -skI https://<vm-ip> | grep -i server
+# Should return: Server: Apache (no version number)
+```
+
+### Tailscale (Admin Access)
+
+```bash
 tailscale status
 ping <tailscale-ip>
+ssh <username>@<tailscale-ip>
+```
 
-# SSH works over Tailscale
-ssh deployer@<tailscale-ip>
+### File Permissions
 
-# File permissions are correct
+```bash
 ls -la /var/www/app/
+# Expected: drwxrwxr-x agmyintmyat dev
+```
 
-# Firewall is active
-sudo ufw status
+### Firewall
 
-# Fail2ban is active
+```bash
+sudo ufw status verbose
+# Status: active, only 22/tcp, 80/tcp, 443/tcp allowed
+```
+
+### Fail2ban
+
+```bash
 sudo fail2ban-client status
+sudo fail2ban-client status sshd
+```
 
-# Server version is hidden
-curl -skI https://<vm-ip> | grep -i server
-# Should return: Server: Apache
+To verify fail2ban is actually banning, attempt 6 failed SSH logins from another machine. The IP should be banned after the 5th failure:
+
+```bash
+sudo fail2ban-client status sshd
+# Should show at least 1 banned IP under "Currently banned"
+```
+
+### Boot Persistence
+
+After a reboot, verify services start automatically:
+
+```bash
+sudo systemctl is-enabled apache2    # should return: enabled
+sudo systemctl is-enabled fail2ban   # should return: enabled
+sudo systemctl is-enabled pm2-agmyintmyat  # should return: enabled
+```
+
+### SSH Hardening
+
+```bash
+grep AllowGroups /etc/ssh/sshd_config
+# Should return: AllowGroups sysadmin dev
+```
+
+### Backup
+
+```bash
+test -d /var/backups/server && echo "Backup directory exists"
+ls -lt /var/backups/server/ | head -5
 ```
 
 ---
