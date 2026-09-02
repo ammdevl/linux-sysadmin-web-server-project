@@ -1,69 +1,48 @@
 <mxfile host="Electron">
   <diagram name="Page-1" id="wEbGD2ZCk1xkHzuEvnle">
-    <mxGraphModel dx="2338" dy="888" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="850" math="0" shadow="0">
+    <mxGraphModel dx="3120" dy="1206" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="850" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
-
-        <!-- Background: VMware VM -->
+        <mxCell id="gcumuoVLkGHK8iTgiRzu-1" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="" vertex="1">
+          <mxGeometry height="810" width="1710" x="-305" y="40" as="geometry" />
+        </mxCell>
         <mxCell id="vm-bg" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;strokeWidth=2;dashed=1;" value="" vertex="1">
           <mxGeometry height="520" width="900" x="100" y="100" as="geometry" />
         </mxCell>
         <mxCell id="vm-label" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontStyle=1;fontSize=14;" value="VMware Virtual Machine — Ubuntu 24.04 LTS (192.168.10.3)" vertex="1">
           <mxGeometry height="30" width="500" x="350" y="110" as="geometry" />
         </mxCell>
-
-        <!-- UFW Firewall -->
         <mxCell id="ufw" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;strokeWidth=2;" value="&lt;b&gt;UFW Firewall&lt;/b&gt;&lt;div style=&quot;font-size:11px;&quot;&gt;22/tcp, 80/tcp, 443/tcp&lt;/div&gt;" vertex="1">
           <mxGeometry height="60" width="180" x="130" y="160" as="geometry" />
         </mxCell>
-
-        <!-- fail2ban -->
         <mxCell id="f2b" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;strokeWidth=2;" value="&lt;b&gt;fail2ban&lt;/b&gt;&lt;div style=&quot;font-size:11px;&quot;&gt;SSH + Apache jails&lt;/div&gt;" vertex="1">
-          <mxGeometry height="60" width="180" x="130" y="240" as="geometry" />
+          <mxGeometry height="60" width="180" x="130" y="265" as="geometry" />
         </mxCell>
-
-        <!-- SSH Hardening -->
         <mxCell id="ssh" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;strokeWidth=2;" value="&lt;b&gt;SSH Hardening&lt;/b&gt;&lt;div style=&quot;font-size:11px;&quot;&gt;Key-only, no root, AllowGroups&lt;/div&gt;" vertex="1">
-          <mxGeometry height="60" width="180" x="130" y="320" as="geometry" />
+          <mxGeometry height="60" width="180" x="130" y="370" as="geometry" />
         </mxCell>
-
-        <!-- Apache2 -->
         <mxCell id="apache" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;strokeWidth=2;" value="&lt;b style=&quot;font-size:14px;&quot;&gt;Apache2&lt;/b&gt;&lt;div style=&quot;font-size:12px;&quot;&gt;:443 (ECDSA TLS)&lt;/div&gt;&lt;div style=&quot;font-size:11px;&quot;&gt;Reverse proxy + static serving&lt;/div&gt;" vertex="1">
-          <mxGeometry height="80" width="200" x="400" y="160" as="geometry" />
+          <mxGeometry height="80" width="200" x="420" y="150" as="geometry" />
         </mxCell>
-
-        <!-- Static files label -->
         <mxCell id="static-label" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontStyle=1;fontSize=12;" value="Served directly from disk" vertex="1">
-          <mxGeometry height="20" width="200" x="650" y="175" as="geometry" />
+          <mxGeometry height="20" width="200" x="610" y="160" as="geometry" />
         </mxCell>
-
-        <!-- Health check -->
         <mxCell id="health" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;strokeWidth=2;" value="&lt;b&gt;/health&lt;/b&gt;&lt;div style=&quot;font-size:11px;&quot;&gt;health.html (Apache Alias)&lt;/div&gt;" vertex="1">
-          <mxGeometry height="50" width="180" x="650" y="200" as="geometry" />
+          <mxGeometry height="50" width="180" x="798" y="165" as="geometry" />
         </mxCell>
-
-        <!-- Static assets -->
         <mxCell id="static" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;strokeWidth=2;" value="&lt;b&gt;/_next/static/&lt;/b&gt;&lt;div style=&quot;font-size:11px;&quot;&gt;Apache Alias (CSS/JS/images)&lt;/div&gt;" vertex="1">
-          <mxGeometry height="50" width="180" x="650" y="260" as="geometry" />
+          <mxGeometry height="50" width="180" x="710" y="370" as="geometry" />
         </mxCell>
-
-        <!-- Node.js / PM2 -->
         <mxCell id="nodejs" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;strokeWidth=2;" value="&lt;b&gt;Node.js (PM2)&lt;/b&gt;&lt;div style=&quot;font-size:11px;&quot;&gt;serve on :3000&lt;/div&gt;&lt;div style=&quot;font-size:11px;&quot;&gt;App: nextjs&lt;/div&gt;" vertex="1">
           <mxGeometry height="70" width="180" x="400" y="310" as="geometry" />
         </mxCell>
-
-        <!-- App source -->
         <mxCell id="appsrc" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;strokeWidth=1;" value="&lt;div style=&quot;font-size:11px;&quot;&gt;/var/www/app/out&lt;/div&gt;&lt;div style=&quot;font-size:10px;&quot;&gt;Next.js static export&lt;/div&gt;" vertex="1">
           <mxGeometry height="40" width="160" x="410" y="400" as="geometry" />
         </mxCell>
-
-        <!-- Tailscale -->
         <mxCell id="tailscale" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;strokeWidth=2;" value="&lt;b&gt;Tailscale&lt;/b&gt;&lt;div style=&quot;font-size:11px;&quot;&gt;WireGuard VPN (admin only)&lt;/div&gt;" vertex="1">
-          <mxGeometry height="50" width="180" x="130" y="420" as="geometry" />
+          <mxGeometry height="50" width="180" x="130" y="476" as="geometry" />
         </mxCell>
-
-        <!-- Client Machine -->
         <mxCell id="client-bg" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;strokeWidth=2;dashed=1;" value="" vertex="1">
           <mxGeometry height="200" width="160" x="-180" y="200" as="geometry" />
         </mxCell>
@@ -76,82 +55,67 @@
         <mxCell id="client-note" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontSize=10;" value="https://192.168.10.3" vertex="1">
           <mxGeometry height="20" width="120" x="-160" y="310" as="geometry" />
         </mxCell>
-
-        <!-- Admin Machine -->
         <mxCell id="admin-bg" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;strokeWidth=2;dashed=1;" value="" vertex="1">
-          <mxGeometry height="200" width="160" x="1000" y="200" as="geometry" />
+          <mxGeometry height="200" width="160" x="1120" y="170" as="geometry" />
         </mxCell>
         <mxCell id="admin-label" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontStyle=1;fontSize=13;" value="Admin Machine" vertex="1">
-          <mxGeometry height="25" width="120" x="1020" y="210" as="geometry" />
+          <mxGeometry height="25" width="120" x="1140" y="180" as="geometry" />
         </mxCell>
         <mxCell id="admin-tailscale" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;strokeWidth=1;" value="Tailscale" vertex="1">
-          <mxGeometry height="50" width="120" x="1020" y="250" as="geometry" />
+          <mxGeometry height="50" width="120" x="1140" y="245" as="geometry" />
         </mxCell>
-        <mxCell id="admin-note" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontSize=10;" value="ssh &lt;user&gt;@&lt;ts-ip&gt;" vertex="1">
-          <mxGeometry height="20" width="120" x="1020" y="310" as="geometry" />
+        <mxCell id="admin-note" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontSize=10;rotation=0;" value="ssh username@&amp;lt;tailscale-ip&amp;gt;" vertex="1">
+          <mxGeometry height="20" width="140" x="710" y="480" as="geometry" />
         </mxCell>
-
-        <!-- Edges: Client → UFW -->
-        <mxCell id="e-client-ufw" edge="1" parent="1" source="browser" target="ufw" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#333333;">
+        <mxCell id="e-client-ufw" edge="1" parent="1" source="browser" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#333333;" target="ufw">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="-100" y="130" />
+              <mxPoint x="220" y="130" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-ufw-f2b" edge="1" parent="1" source="ufw" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="f2b">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-
-        <!-- Edges: UFW → fail2ban -->
-        <mxCell id="e-ufw-f2b" edge="1" parent="1" source="ufw" target="f2b" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;">
+        <mxCell id="e-f2b-ssh" edge="1" parent="1" source="f2b" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="ssh">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-
-        <!-- Edges: fail2ban → SSH -->
-        <mxCell id="e-f2b-ssh" edge="1" parent="1" source="f2b" target="ssh" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-
-        <!-- Edges: UFW → Apache -->
-        <mxCell id="e-ufw-apache" edge="1" parent="1" source="ufw" target="apache" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#333333;">
+        <mxCell id="e-ufw-apache" edge="1" parent="1" source="ufw" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#333333;" target="apache">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
               <mxPoint x="350" y="190" />
             </Array>
           </mxGeometry>
         </mxCell>
-
-        <!-- Edges: Apache → Health -->
-        <mxCell id="e-apache-health" edge="1" parent="1" source="apache" target="health" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#82b366;">
+        <mxCell id="e-apache-health" edge="1" parent="1" source="apache" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#82b366;" target="health">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-
-        <!-- Edges: Apache → Static -->
-        <mxCell id="e-apache-static" edge="1" parent="1" source="apache" target="static" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#82b366;">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-
-        <!-- Edges: Apache → Node.js -->
-        <mxCell id="e-apache-node" edge="1" parent="1" source="apache" target="nodejs" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#9673a6;">
+        <mxCell id="e-apache-node" edge="1" parent="1" source="apache" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#9673a6;" target="nodejs">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="500" y="280" />
+              <mxPoint x="490" y="250" />
+              <mxPoint x="490" y="250" />
             </Array>
           </mxGeometry>
         </mxCell>
-
-        <!-- Edges: Node.js → App source -->
-        <mxCell id="e-node-app" edge="1" parent="1" source="nodejs" target="appsrc" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#9673a6;">
+        <mxCell id="e-node-app" edge="1" parent="1" source="nodejs" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#9673a6;" target="appsrc">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-
-        <!-- Edges: SSH → Tailscale -->
-        <mxCell id="e-ssh-ts" edge="1" parent="1" source="ssh" target="tailscale" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;">
+        <mxCell id="e-ssh-ts" edge="1" parent="1" source="ssh" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="tailscale">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-
-        <!-- Edges: Admin Tailscale → VM Tailscale -->
-        <mxCell id="e-admin-ts" edge="1" parent="1" source="admin-tailscale" target="tailscale" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#b85450;dashed=1;">
-          <mxGeometry relative="1" as="geometry" />
+        <mxCell id="e-admin-ts" edge="1" parent="1" source="admin-tailscale" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#b85450;dashed=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1200" y="505.03" />
+            </Array>
+            <mxPoint x="1200" y="400" as="sourcePoint" />
+            <mxPoint x="300" y="505" as="targetPoint" />
+          </mxGeometry>
         </mxCell>
-
-        <!-- Legend -->
         <mxCell id="legend-bg" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#999999;strokeWidth=1;" value="" vertex="1">
-          <mxGeometry height="160" width="250" x="100" y="640" as="geometry" />
+          <mxGeometry height="160" width="255" x="100" y="640" as="geometry" />
         </mxCell>
         <mxCell id="legend-title" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;rounded=0;fontStyle=1;fontSize=12;" value="Legend" vertex="1">
           <mxGeometry height="25" width="100" x="110" y="645" as="geometry" />
@@ -174,7 +138,16 @@
         <mxCell id="legend6" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;rounded=0;fontSize=10;" value="Dashed = WireGuard tunnel" vertex="1">
           <mxGeometry height="20" width="130" x="225" y="700" as="geometry" />
         </mxCell>
-
+        <mxCell id="KVbfanCaxbrqjXvyy_iV-3" edge="1" parent="1" source="apache" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#82b366;exitX=0.801;exitY=0.96;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="static">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="580.23" y="285" />
+              <mxPoint x="800" y="285" />
+            </Array>
+            <mxPoint x="580" y="241" as="sourcePoint" />
+            <mxPoint x="856.0000000000001" y="310" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
       </root>
     </mxGraphModel>
   </diagram>

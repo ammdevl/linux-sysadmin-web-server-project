@@ -16,7 +16,7 @@ section {
 }
 </style>
 
-<img src="../src/ucsy-logo.png" width="150" height="150" alt="UCSY Logo"/>
+<img src="../src/ucsy-logo.png" width="200" height="200" alt="UCSY Logo"/>
 
 ### **University of Computer Studies, Yangon**
 
@@ -26,9 +26,32 @@ section {
 
 ---
 
-## Linux System Administration Project
+## Semester IV Project
 ## Web Server
 ###### Presented by
+
+---
+
+<style scoped>
+section {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+</style>
+| No. | Name | YKPT | Role |
+| --- | --- | --- | --- |
+| 1 | Maung Khant | YKPT - 22988 | Project Leader |
+| 2 | Aung Myint Myat Aung | YKPT - 23029 | sysadmin |
+| 3 | Gon Yaung Win | YKPT - 22990 | sysadmin |
+| 4 | Aung Khant Kyaw | YKPT - 23013 | sysadmin |
+| 5 | San Thiri Tun | YKPT - 23078 | sysadmin |
+| 6 | Kaung Htut Thaw | YKPT - 23020 | dev |
+| 7 | Han Linn Htun | YKPT - 23005 | dev |
+| 8 | Shoon Lae Aung | YKPT - 23026 | dev |
+| 9 | Aung Myint Myat | YKPT - 23046 | Documentation |
 
 ---
 
@@ -36,6 +59,7 @@ section {
 * Project Overview
 * Tech Stack & Tools
 * Architecture & Design
+* Network Topology
 * Conclusion & Future Work
 * References
 
@@ -82,7 +106,7 @@ VM Tailscale interface
     ▼
 SSH (22)  ── key-only auth, password disabled
     │
-    │  su - agmyintmyat (deployer)
+    │  agmyintmyat (primary deployer with sudo privileges)
     ▼
 git pull → npm install → npm run build → pm2 restart
 ```
@@ -95,15 +119,33 @@ Client traffic is served over HTTPS (443) with TLS termination at Apache2. The s
 ```bash
 Client (browser)
     │
-    │  https://<vm-ip>:443
+    │  https://192.168.10.3
     ▼
-Apache2 (:443)  ── TLS termination (self-signed cert)
+Apache2 (:443)  ── TLS termination (self-signed ECDSA cert)
     │
-    │  ProxyPass / http://127.0.0.1:3000/
-    ▼
-PM2 → serve (:3000)  ── serves static files from /var/www/app/out/
+    ├── /_next/static/*  ── Alias ──▶ /var/www/app/out/_next/static/ (disk)
+    │
+    ├── /health  ── Alias ──▶ /var/www/app/out/health.json (disk)
+    │
+    └── /*  ── ProxyPass ──▶ PM2 → serve (:3000)
 ```
 
+---
+
+## Network Topology
+```bash
+┌──────────────┐      ┌───────────────────────┐      ┌──────────────┐
+│ Client       │      │   VMware NAT Network  │      │ Host Machine │
+│ (browser)    │      │   192.168.10.0/24     │      │ (admin)      │
+│              │      │                       │      │              │
+│  ──────────────────────────────────────▶    │      │  Tailscale   │
+│  https://192.168.10.3:443                   │      │  ─ WireGuard │
+└──────────────┘      │                       └──────────────┘
+                      │  Gateway: 192.168.10.2
+                      │  VM IP:   192.168.10.3 (static, Netplan)
+                      │  DNS:     8.8.8.8, 8.8.4.4
+                      └───────────────────────┘
+```
 ---
 
 ## Conclusion & Future Work
