@@ -5,8 +5,7 @@
 [![GitHub issues](https://img.shields.io/github/issues/ammdevl/linux-sysadmin-web-server-project.svg)](https://github.com/ammdevl/linux-sysadmin-web-server-project/issues)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](http://makeapullrequest.com)
 
-> **Project Status:** 🟢 **Completed** — *All deployment requirements, server hardening, and documentation fulfilled (2026-08-29).*
-> *Deployment follows [SERVER_SETUP.md](SERVER_SETUP.md). See [spec.md](spec.md) for the finalized specification.*
+A secure Apache2 web server hosting a self-paced course website ([lfs-101-notes](https://github.com/ammdevl/lfs-101-notes), a Next.js application) on a VMware virtual machine — built as an academic Linux system administration project.
 
 ## Table of Contents
 
@@ -25,9 +24,6 @@
 - [License](#license)
 
 ## About
-
-A secure Apache2 web server hosting a self-paced course website ([lfs-101-notes](https://github.com/ammdevl/lfs-101-notes), a Next.js application) on a VMware virtual machine — built as an academic Linux system administration project.
-
 The project applies lecture concepts in a real-world scenario:
 
 - **User & group management** — dedicated `sysadmin` (sudo) and `dev` (deployment) accounts instead of a shared root workflow
@@ -42,8 +38,11 @@ The project applies lecture concepts in a real-world scenario:
 ├── LICENSE
 ├── SERVER_SETUP.md          # Full web server deployment guide
 ├── DEPLOY.md                # Deployment & operations runbook
-├── README.md
+├── README.md                # Project overview and documentation
 ├── spec.md                  # Approved project specification
+├── src/                     # images for docs/
+├── slide/                   # Presentation slides
+├── .gitignore
 ├── docs/
 │   ├── architecture.md      # System architecture & design reference
 │   ├── troubleshooting.md   # Known issues & fixes from live deployment
