@@ -170,8 +170,8 @@ Group: dev (deployment only)
 
 | Jail | Max retries | Ban time | Log watched |
 | --- | --- | --- | --- |
-| `sshd` | 5 | 1 hour | `/var/log/auth.log` |
-| `apache-auth` | 5 | 1 hour | `/var/log/apache2/app-error.log` |
+| `sshd` | 3 | 1 Day | `/var/log/auth.log` |
+| `apache-auth` | 3 | 1 Day | `/var/log/apache2/app-error.log` |
 
 ## File & Directory Layout
 

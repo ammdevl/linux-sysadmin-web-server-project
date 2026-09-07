@@ -137,41 +137,7 @@ sudo systemctl restart apache2
 
 **Prevention:** [SERVER_SETUP.md](../SERVER_SETUP.md) §7 generates the cert in the "Generate a Self-Signed Certificate" subsection, which comes **before** the "Create Virtual Host Configuration" subsection.
 
-## 5. PM2 Startup — Sudo Required
-
-**Symptom:** Running `pm2 startup` prints a `sudo env PATH=...` command, but executing it as the deployer fails:
-```
-sudo: agmyintmyat is not in the sudoers file
-```
-
-**Root cause:** `pm2 startup` installs a systemd unit in `/etc/systemd/system/`, which requires root. The deployer account has no sudo by design (least privilege).
-
-**Fix:** Run the printed command from a **sysadmin** account:
-
-```bash
-# Step 1: Save the process list (as deployer)
-pm2 save
-
-# Step 2: Get the startup command (as deployer)
-pm2 startup
-# Copy the printed sudo command (don't run it)
-
-# Step 3: Exit to admin
-exit
-
-# Step 4: Run it as admin
-sudo env PATH=$PATH:/usr/bin /usr/lib/node_modules/pm2/bin/pm2 startup \
-    systemd -u agmyintmyat --hp /home/agmyintmyat
-
-# Step 5: Verify
-systemctl status pm2-agmyintmyat
-```
-
-The systemd unit runs PM2 **as** `agmyintmyat` on boot — the deployer never needs sudo.
-
-**Prevention:** [SERVER_SETUP.md](../SERVER_SETUP.md) §8 steps 5-6 now show this explicitly. The `server-setup.sh` script handles it automatically.
-
-## 6. No `backend/` Directory — Static Export
+## 5. No `backend/` Directory — Static Export
 
 **Symptom:**
 ```bash
@@ -193,7 +159,7 @@ The app uses `output: "export"` in `next.config.js` — the build produces stati
 
 **Prevention:** [SERVER_SETUP.md](../SERVER_SETUP.md) §8 steps 3-4 specify "from the repo root `/var/www/app` — there is no `backend/` subdirectory."
 
-## 7. `next start` Fails with Static Export
+## 6. `next start` Fails with Static Export
 
 **Symptom:**
 ```bash
@@ -214,7 +180,7 @@ pm2 start serve --name "nextjs" -- /var/www/app/out
 
 Do not try to use `next start` directly.
 
-## 8. Let's Encrypt Refuses Bare IP
+## 7. Let's Encrypt Refuses Bare IP
 
 **Symptom:**
 ```bash
@@ -241,7 +207,7 @@ sudo certbot --apache -d your-domain.com
 ```
 Then update `ServerName` in `app.conf` to the domain.
 
-## 9. Server Version Exposed in Headers
+## 8. Server Version Exposed in Headers
 
 **Symptom:** `curl -sI https://<vm-ip>` reveals:
 ```
