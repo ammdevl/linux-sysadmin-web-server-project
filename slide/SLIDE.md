@@ -26,9 +26,17 @@ section {
 
 ---
 
-## Semester IV Project
-## Web Server
-###### Presented by
+<style scoped>
+section {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+</style>
+## A Modern Secure Web Server
+###### Presented by Group 7
 
 ---
 
@@ -41,17 +49,17 @@ section {
   text-align: center;
 }
 </style>
-| No. | Name | YKPT | Role |
-| --- | --- | --- | --- |
-| 1 | Maung Khant | YKPT - 22988 | Project Leader |
-| 2 | Aung Myint Myat Aung | YKPT - 23029 | sysadmin |
-| 3 | Gon Yaung Win | YKPT - 22990 | sysadmin |
-| 4 | Aung Khant Kyaw | YKPT - 23013 | sysadmin |
-| 5 | San Thiri Tun | YKPT - 23078 | sysadmin |
-| 6 | Kaung Htut Thaw | YKPT - 23020 | dev |
-| 7 | Han Linn Htun | YKPT - 23005 | dev |
-| 8 | Shoon Lae Aung | YKPT - 23026 | dev |
-| 9 | Aung Myint Myat | YKPT - 23046 | Documentation |
+| No. | Name | YKPT |
+| --- | --- | --- |
+| 1 | Maung Khant | YKPT - 22988 |
+| 2 | Aung Myint Myat Aung | YKPT - 23029 |
+| 3 | Gon Yaung Win | YKPT - 23013 |
+| 4 | Aung Khant Kyaw | YKPT - 23023 |
+| 5 | San Thiri Tun | YKPT - 23078 |
+| 6 | Kaung Htut Thaw | YKPT - 23020 |
+| 7 | Han Linn Htun | YKPT - 23005 |
+| 8 | Shoon Lae Aung | YKPT - 23026 |
+| 9 | Aung Myint Myat | YKPT - 23046 |
 
 ---
 
@@ -60,6 +68,12 @@ section {
 * Tech Stack & Tools
 * Architecture & Design
 * Network Topology
+* Users & Groups
+* File Permissions
+* SSH Hardening
+* Firewall Rules (UFW)
+* Intrusion Prevention (fail2ban)
+* Boot Sequence
 * Conclusion & Future Work
 * References
 
@@ -137,15 +151,122 @@ Apache2 (:443)  ── TLS termination (self-signed ECDSA cert)
 ┌──────────────┐      ┌───────────────────────┐      ┌──────────────┐
 │ Client       │      │   VMware NAT Network  │      │ Host Machine │
 │ (browser)    │      │   192.168.10.0/24     │      │ (admin)      │
-│              │      │                       │      │              │
+│              │      │                 ◄────────────────────────── │
 │  ──────────────────────────────────────▶    │      │  Tailscale   │
 │  https://192.168.10.3:443                   │      │  ─ WireGuard │
-└──────────────┘      │                       └──────────────┘
-                      │  Gateway: 192.168.10.2
+└──────────────┘      │                       │      └──────────────┘
+                      │  Gateway: 192.168.10.2│
                       │  VM IP:   192.168.10.3 (static, Netplan)
                       │  DNS:     8.8.8.8, 8.8.4.4
                       └───────────────────────┘
 ```
+---
+
+## Users & Groups
+
+```
+Group: sysadmin (sudo ALL)
+├── mgkhant
+├── agmyintmyatag
+├── gonyaungwin
+├── agkhantkyaw
+└── santhiritun
+
+Group: dev (deployment only)
+├── kghtutthaw
+├── hanlinhtun
+├── shoonlaeaung
+└── agmyintmyat ← primary deployer
+```
+
+---
+
+## File Permissions
+<style scoped>
+  table {
+    width: 100% !important;
+    font-size: 25px !important;
+    border-collapse: collapse;
+  }
+
+  th, td {
+    padding: 6px 8px !important;
+    white-space: nowrap;
+  }
+
+  td:first-child code {
+    white-space: normal !important;
+    word-break: break-all !important;
+  }
+
+  code {
+    font-size: 20px !important;
+    padding: 2px 4px !important;
+  }
+</style>
+| Path | Owner | Group | Dir perms | File perms | Purpose |
+| --- | --- | --- | --- | --- | --- |
+| `/var/www/app/` | `agmyintmyat` | `dev` | 775 | 664 | Web app root |
+| `/etc/ssl/private/selfsigned.key` | `root` | `root` | — | 600 | TLS private key |
+| `/etc/ssl/certs/selfsigned.crt` | `root` | `root` | — | 644 | TLS certificate |
+| `/etc/ssh/sshd_config` | `root` | `root` | — | 644 | SSH config overrides |
+| `/etc/fail2ban/jail.local` | `root` | `root` | — | 644 | Fail2ban config |
+| `/etc/apache2/sites-available/app.conf` | `root` | `root` | — | 644 | Apache vhost |
+
+---
+
+## SSH Hardening
+
+| Setting | Value | File |
+| --- | --- | --- |
+| `PasswordAuthentication` | `no` | `/etc/ssh/sshd_config` |
+| `PermitRootLogin` | `no` | `/etc/ssh/sshd_config` |
+| `AllowGroups` | `sysadmin dev` | `/etc/ssh/sshd_config` |
+| Authentication | Key-based only | SSH key pair on host |
+
+---
+
+## Firewall Rules (UFW)
+
+| Port | Protocol | Action | Purpose |
+| --- | --- | --- | --- |
+| 22 | TCP | ALLOW | SSH access |
+| 80 | TCP | ALLOW | HTTP (redirects to HTTPS) |
+| 443 | TCP | ALLOW | HTTPS |
+| All others | — | DENY | Blocked by default |
+
+###### Allow outgoing connections, deny incoming connections.
+
+---
+
+## Intrusion Prevention (fail2ban)
+
+| Jail | Max retries | Ban time | Log watched |
+| --- | --- | --- | --- |
+| `sshd` | 3 | 1 Day | `/var/log/auth.log` |
+| `apache-auth` | 3 | 1 Day | `/var/log/apache2/app-error.log` |
+
+---
+
+## Boot Sequence
+
+On VM startup, the following services start automatically:
+
+```
+1. systemd
+   ├── sshd (OpenSSH server)
+   ├── apache2 (web server + reverse proxy)
+   ├── pm2-agmyintmyat.service (PM2 daemon, runs as agmyintmyat)
+   │   └── restores saved process list → serve /var/www/app/out → port 3000
+   ├── ufw (firewall)
+   ├── fail2ban (intrusion prevention)
+   └── tailscale (admin tunnel, if configured)
+
+2. Apache is ready → client can reach :80 and :443
+3. PM2 restores processes → port 3000 listening
+4. Full chain operational: HTTPS :443 → ProxyPass → :3000
+```
+
 ---
 
 ## Conclusion & Future Work
