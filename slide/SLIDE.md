@@ -139,8 +139,6 @@ Apache2 (:443)  ── TLS termination (self-signed ECDSA cert)
     │
     ├── /_next/static/*  ── Alias ──▶ /var/www/app/out/_next/static/ (disk)
     │
-    ├── /health  ── Alias ──▶ /var/www/app/out/health.json (disk)
-    │
     └── /*  ── ProxyPass ──▶ PM2 → serve (:3000)
 ```
 
